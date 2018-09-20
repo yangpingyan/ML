@@ -7,10 +7,13 @@ from argparse import ArgumentParser
 import pytesseract
 from PIL import Image
 from flask import Flask, request, jsonify
+from flask import make_response
+from flask import abort
+
 
 app = Flask(__name__)
 
-tasks = [
+users = [
     {
         'id': 1,
         'title': u'Buy groceries',
@@ -26,10 +29,18 @@ tasks = [
 ]
 
 
-@app.route('/ml', methods=['GET'])
-def ml():
-    return jsonify({'tasks': tasks})
+@app.route('/ml/<int:user_id>', methods=['GET'])
+def get_result(user_id):
+    print(user_id)
+    # result = filter(lambda u: u['id'] == user_id, users)
+    # print(result)
+    # # if len(result) == 0:
+    # #     abort(404)
+    return jsonify({'users': users[0]})
 
+@app.errorhandler(404)
+def not_found(error):
+    return make_response(jsonify({'error': 'Not found'}), 404)
 
 if __name__ == '__main__':
     opt = ArgumentParser()
