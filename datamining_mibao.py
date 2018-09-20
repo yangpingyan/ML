@@ -32,9 +32,6 @@
 # ## 开始数据挖掘工作
 # 先做些代码初始化
 
-# In[1]:
-
-
 import csv
 import json
 import seaborn as sns
@@ -202,42 +199,26 @@ df['check_result'].value_counts()
 # 订单状态
 df['state'].value_counts()
 
-# In[10]:
-
-
 # 查看非空值个数， 数据类型
 df.info()
 
-# In[11]:
-
-
 df.dtypes.value_counts()
-
-# In[12]:
 
 
 # 缺失值比率
 missing_values_table(df)
 
-# In[13]:
-
 
 # 特征中不同值得个数
 df.select_dtypes('object').apply(pd.Series.nunique, axis=0)
-
-# In[14]:
 
 
 #  数值描述
 df.describe()
 
-# In[15]:
-
 
 # 类别描述
 df.describe(include='O')
-
-# In[16]:
 
 
 # 开始清理数据
@@ -247,14 +228,10 @@ print("初始数据量: {}".format(df.shape))
 df.dropna(subset=['card_id'], inplace=True)
 print("去除无身份证号后的数据量: {}".format(df.shape))
 
-# In[18]:
-
 
 # 取有审核结果的数据
 df = df[df['check_result'].str.contains('SUCCESS|FAILURE', na=False)]
 print("去除未经机审用户后的数据量: {}".format(df.shape))
-
-# In[19]:
 
 
 # 去除测试数据和内部员工数据
@@ -348,16 +325,12 @@ df['zmf_score_band'] = pd.cut(df['zmf_score'], bins, labels=False)
 df[['zmf_score_band', 'check_result']].groupby(['zmf_score_band'], as_index=False).mean().sort_values(by='check_result',
                                                                                                       ascending=False)
 
-# In[28]:
-
 
 # 小白分分类
 bins = pd.IntervalIndex.from_tuples([(0, 80), (80, 90), (90, 100), (100, 200)])
 df['xbf_score_band'] = pd.cut(df['xbf_score'], bins, labels=False)
 df[['xbf_score_band', 'check_result']].groupby(['xbf_score_band'], as_index=False).mean().sort_values(by='check_result',
                                                                                                       ascending=False)
-
-# In[29]:
 
 
 # 年龄分类
@@ -366,15 +339,11 @@ df['age_band'] = pd.cut(df['age'], bins, labels=False)
 df[['age_band', 'check_result']].groupby(['age_band'], as_index=False).mean().sort_values(by='check_result',
                                                                                           ascending=False)
 
-# In[30]:
-
 
 # 下单时间分类
 df['create_hour_band'] = pd.cut(df['create_hour'], 5, labels=False)
 df[['create_hour_band', 'check_result']].groupby(['create_hour_band'], as_index=False).mean().sort_values(
     by='check_result', ascending=False)
-
-# In[31]:
 
 
 features = ['check_result', 'result', 'pay_num', 'channel', 'goods_type', 'type', 'order_type',
@@ -395,9 +364,6 @@ sns.heatmap(df.astype(float).corr(), linewidths=0.1, vmax=1.0,
             square=True, cmap=plt.cm.RdBu, linecolor='white', annot=True)
 
 # ## 机器学习训练、预测
-
-# In[35]:
-
 
 import time
 import os
