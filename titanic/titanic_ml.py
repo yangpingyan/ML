@@ -17,7 +17,7 @@ from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
 
 # 0. 数据读入及预处理
-root_path = 'datasets/getting-started/titanic/input'
+root_path = 'datasets'
 data_train = pd.read_csv('%s/%s' % (root_path, 'train.csv'))
 # data_train.info()
 # print(data_train.describe())
