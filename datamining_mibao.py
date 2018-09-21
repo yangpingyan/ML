@@ -96,6 +96,7 @@ def feature_analyse(df, col, bins=10):
     print(analyse_df)
     plt.bar(analyse_df.index, analyse_df['pass_rate'])
     plt.ylabel('Pass Rate')
+    plt.show()
 
 
 # KDE plot
@@ -180,9 +181,13 @@ df_alldata.tail()
 # 所有特征值
 df_alldata.columns.values
 
+# 特征选择
+# f_classif
+# mutual_info_classif
+
+
 # 我们并不需要所有的特征值，筛选出一些可能有用的特质值
 df = df_alldata.dropna(axis=1, how='all')
-
 features = ['create_time', 'goods_name', 'cost', 'discount', 'pay_num', 'added_service', 'first_pay', 'channel',
             'pay_type', 'merchant_id', 'goods_type', 'lease_term', 'daily_rent', 'accident_insurance', 'type',
             'freeze_money', 'ip', 'releted', 'order_type', 'source', 'disposable_payment_discount',
@@ -198,42 +203,25 @@ print("数据起止时间段：{} -- {}".format(df['create_time'].iloc[0], df['c
 df['check_result'].value_counts()
 # 订单状态
 df['state'].value_counts()
-
 # 查看非空值个数， 数据类型
 df.info()
-
 df.dtypes.value_counts()
-
-
 # 缺失值比率
 missing_values_table(df)
-
-
 # 特征中不同值得个数
 df.select_dtypes('object').apply(pd.Series.nunique, axis=0)
-
-
 #  数值描述
 df.describe()
-
-
 # 类别描述
 df.describe(include='O')
-
-
 # 开始清理数据
 print("初始数据量: {}".format(df.shape))
-
 # 丢弃身份证号为空的数据
 df.dropna(subset=['card_id'], inplace=True)
 print("去除无身份证号后的数据量: {}".format(df.shape))
-
-
 # 取有审核结果的数据
 df = df[df['check_result'].str.contains('SUCCESS|FAILURE', na=False)]
 print("去除未经机审用户后的数据量: {}".format(df.shape))
-
-
 # 去除测试数据和内部员工数据
 df = df[df['cancel_reason'].str.contains('测试|内部员工') != True]
 df = df[df['check_remark'].str.contains('测试|内部员工') != True]
@@ -306,18 +294,20 @@ features_cat = ['check_result', 'result', 'pay_num', 'channel', 'goods_type', 'l
                 'source', 'phone_book', 'emergency_contact_phone', 'old_level', 'create_hour', 'sex', ]
 features_number = ['cost', 'daily_rent', 'price', 'age', 'zmf_score', 'xbf_score', ]
 
-df = df[features_cat + features_number]
-for col in df.columns.values:
+for col in df[features_cat + features_number].columns.values:
     if df[col].dtype == 'O':
         df[col].fillna(value='NODATA', inplace=True)
 df.fillna(value=0, inplace=True)
 
-plt.hist(df['zmf_score'])
+plt.hist(df['check_result'])
 feature_analyse(df, 'result')
 feature_analyse(df, 'pay_num')
 feature_analyse(df, 'channel')
-feature_kdeplot(df, 'zmf_score')
 
+feature = 'zmf_score'
+plt.hist(df[feature])
+feature_analyse(df, feature)
+feature_kdeplot(df, feature)
 
 # 芝麻分分类
 bins = pd.IntervalIndex.from_tuples([(0, 600), (600, 700), (700, 800), (800, 1000)])
@@ -325,13 +315,11 @@ df['zmf_score_band'] = pd.cut(df['zmf_score'], bins, labels=False)
 df[['zmf_score_band', 'check_result']].groupby(['zmf_score_band'], as_index=False).mean().sort_values(by='check_result',
                                                                                                       ascending=False)
 
-
 # 小白分分类
 bins = pd.IntervalIndex.from_tuples([(0, 80), (80, 90), (90, 100), (100, 200)])
 df['xbf_score_band'] = pd.cut(df['xbf_score'], bins, labels=False)
 df[['xbf_score_band', 'check_result']].groupby(['xbf_score_band'], as_index=False).mean().sort_values(by='check_result',
                                                                                                       ascending=False)
-
 
 # 年龄分类
 bins = pd.IntervalIndex.from_tuples([(0, 18), (18, 24), (24, 30), (30, 40), (40, 100)])
@@ -339,12 +327,10 @@ df['age_band'] = pd.cut(df['age'], bins, labels=False)
 df[['age_band', 'check_result']].groupby(['age_band'], as_index=False).mean().sort_values(by='check_result',
                                                                                           ascending=False)
 
-
 # 下单时间分类
 df['create_hour_band'] = pd.cut(df['create_hour'], 5, labels=False)
 df[['create_hour_band', 'check_result']].groupby(['create_hour_band'], as_index=False).mean().sort_values(
     by='check_result', ascending=False)
-
 
 features = ['check_result', 'result', 'pay_num', 'channel', 'goods_type', 'type', 'order_type',
             'source', 'phone_book', 'old_level', 'sex', 'create_hour', 'age_band', 'zmf_score_band',
@@ -479,3 +465,11 @@ plt.show()
 #         c. 增加模型预测能力，ROC分数达到0.96以上， 预测准确度达到98.5%
 #         d. 增加客户信用额度字段。如何确定客户额度方案未知。
 #
+# ## 特征处理
+# 1. 把IP地址、收货地址、身份证地址、居住地址转换成经纬度
+# 2. 把创建时间转换成月、日、周几、小时段
+
+# ## 增加特征
+# 1. 下单时的经纬度
+# 2. 下单时手机设备
+# 3.
