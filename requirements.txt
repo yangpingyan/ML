@@ -24,7 +24,6 @@ matplotlib
 tensorflow
 keras
 scikit-learn
-autokeras
 ipython
 xlrd
 seaborn

@@ -25,6 +25,8 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.metrics import precision_recall_curve, precision_score, recall_score, f1_score
 from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.model_selection import KFold
+from sklearn.model_selection import GridSearchCV
+
 from xgboost import XGBClassifier
 import lightgbm as lgb
 from tools_ml import *
@@ -40,9 +42,10 @@ plt.rcParams['axes.labelsize'] = 14
 plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
 # read large csv file
+csv.field_size_limit(100000000)
+
 if os.getcwd().find('titanic') == -1:
     os.chdir('titanic')
-
 
 df = pd.read_csv('titanic_ml.csv', encoding='utf-8', engine='python')
 print("ML初始数据量: {}".format(df.shape))
@@ -88,7 +91,7 @@ rnd_clf = RandomForestClassifier()
 xg_clf = XGBClassifier()
 lgbm = lgb.LGBMClassifier()
 
-clf_list = [lgbm, xg_clf, knn_clf, log_clf, sgd_clf, decision_tree, rnd_clf, gaussian_clf, linear_svc]
+clf_list = [lgbm, xg_clf, knn_clf, rnd_clf, log_clf,  gaussian_clf, linear_svc]
 score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'runtime', 'confusion_matrix'])
 for clf in clf_list:
     starttime = time.clock()
@@ -97,6 +100,43 @@ for clf in clf_list:
     add_score(score_df, clf.__class__.__name__, time.clock() - starttime, y_pred, y_test)
 
 print(score_df)
+
+
+
+# 模型微调-随机搜索
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import randint
+
+param_distribs = {
+    'n_estimators': randint(low=1, high=200),
+    'max_features': randint(low=1, high=8),
+}
+
+forest_clf = RandomForestClassifier()
+rnd_search = RandomizedSearchCV(forest_clf, param_distributions=param_distribs,
+                                n_iter=10, cv=5, scoring='roc_auc', n_jobs=-1)
+rnd_search.fit(x_train, y_train)
+rnd_search.best_params_
+rnd_search.best_estimator_
+rnd_search.best_score_
+cvres = rnd_search.cv_results_
+
+feature_importances = rnd_search.best_estimator_.feature_importances_
+importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
+importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
+print(importance_df)
+
+# 用测试集评估系统
+clf = rnd_search.best_estimator_
+starttime = time.clock()
+clf.fit(x_train, y_train)
+y_pred = clf.predict(x_test)
+add_score(score_df, clf.__class__.__name__ + 'best', time.clock() - starttime, y_pred, y_test)
+print(score_df)
+
+
+
+
 
 # 使用PR曲线： 当正例较少或者关注假正例多假反例。 其他情况用ROC曲线
 plt.figure(figsize=(8, 6))
@@ -124,7 +164,6 @@ plt.show()
 
 # 模型微调，寻找最佳超参数
 # 网格搜索
-from sklearn.model_selection import GridSearchCV
 
 param_grid = [
     # try 12 (3×4) combinations of hyperparameters
@@ -149,42 +188,6 @@ results = pd.DataFrame(grid_search.cv_results_)
 for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
     print(np.sqrt(-mean_score), params)
 
-# 模型微调-随机搜索
-from sklearn.model_selection import RandomizedSearchCV
-from scipy.stats import randint
-
-param_distribs = {
-    'n_estimators': randint(low=1, high=200),
-    'max_features': randint(low=1, high=8),
-}
-
-forest_clf = RandomForestClassifier()
-rnd_search = RandomizedSearchCV(forest_clf, param_distributions=param_distribs,
-                                n_iter=10, cv=5, scoring='roc_auc', n_jobs=-1)
-starttime = time.clock()
-rnd_search.fit(x_train, y_train)
-print(time.clock() - starttime)
-rnd_search.best_params_
-rnd_search.best_estimator_
-rnd_search.best_score_
-cvres = rnd_search.cv_results_
-for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
-    print(np.sqrt(-mean_score), params)
-
-feature_importances = grid_search.best_estimator_.feature_importances_
-importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
-importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
-print(importance_df)
-
-# 分析最佳模型和它们的误差
-
-# 用测试集评估系统
-clf = grid_search.best_estimator_
-starttime = time.clock()
-clf.fit(x_train, y_train)
-y_pred = clf.predict(x_test)
-add_score(score_df, clf.__class__.__name__ + 'best', time.clock() - starttime, x_test, y_test)
-print(score_df)
 # 模型保存于加载
 # from sklearn.externals import joblib
 #
@@ -374,9 +377,3 @@ submission, fi, metrics = model(app_train, app_test)
 print('Baseline metrics')
 print(metrics)
 
-
-submission = pd.DataFrame({
-        "PassengerId": test_df["PassengerId"],
-        "Survived": Y_pred
-    })
-# submission.to_csv('submission.csv', index=False)

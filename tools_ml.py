@@ -53,10 +53,17 @@ def missing_values_table(df):
 
 # 特征分析
 def feature_analyse(df, feature, label='check_result', bins=10):
-    if df[feature].dtype != 'O':
-        col_band = feature + '_band'
-        df[col_band] = pd.cut(df[feature], bins).astype(str)
-        col_ana = col_band
+    print(df[feature].value_counts())
+
+    if df[feature].dtype != 'object':
+        plt.figure()
+        plt.hist(df[feature])
+        feature_kdeplot(df, feature, label)
+
+    if df[feature].dtype != 'object':
+        feature_band = feature + 'Band'
+        df[feature_band] = pd.cut(df[feature], bins).astype(str)
+        col_ana = feature_band
     else:
         col_ana = feature
 
@@ -75,6 +82,8 @@ def feature_analyse(df, feature, label='check_result', bins=10):
     plt.bar(analyse_df.index, analyse_df['positive_rate'])
     plt.ylabel('Positive Rate')
     plt.title('Positive Rate of ' + feature)
+    if df[feature].dtype != 'object':
+        df.drop([feature_band], axis=1, errors='ignore', inplace=True)
 
 
 # KDE plot
