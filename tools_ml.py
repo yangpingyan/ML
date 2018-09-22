@@ -12,6 +12,15 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import time
 import os
+from sklearn.metrics import precision_recall_curve, precision_score, recall_score, f1_score
+from sklearn.metrics import roc_curve, roc_auc_score, confusion_matrix, accuracy_score
+
+# 保存所有模型得分
+def add_score(score_df, name, runtime, y_pred, y_test):
+    score_df[name] = [accuracy_score(y_test, y_pred), precision_score(y_test, y_pred), recall_score(y_test, y_pred),
+                      f1_score(y_test, y_pred), runtime, confusion_matrix(y_test, y_pred)]
+
+    return score_df
 
 
 def missing_values_table(df):
@@ -43,13 +52,13 @@ def missing_values_table(df):
 
 
 # 特征分析
-def feature_analyse(df, col, label='check_result', bins=10):
-    if df[col].dtype != 'O':
-        col_band = col + '_band'
-        df[col_band] = pd.cut(df[col], bins).astype(str)
+def feature_analyse(df, feature, label='check_result', bins=10):
+    if df[feature].dtype != 'O':
+        col_band = feature + '_band'
+        df[col_band] = pd.cut(df[feature], bins).astype(str)
         col_ana = col_band
     else:
-        col_ana = col
+        col_ana = feature
 
     print(df[col_ana].describe())
     print("-------------------------------------------")
@@ -59,11 +68,11 @@ def feature_analyse(df, col, label='check_result', bins=10):
     analyse_df = all_df.merge(pass_df, how='outer', left_index=True, right_index=True)
     analyse_df = analyse_df.merge(reject_df, how='outer', left_index=True, right_index=True)
     analyse_df['positive_rate'] = analyse_df['positive'] / analyse_df['all']
-    analyse_df.sort_values(by='positive_rate', inplace=True, ascending=False)
+    # analyse_df.sort_values(by='positive_rate', inplace=True, ascending=False)
     analyse_df.fillna(value=0, inplace=True)
     print(analyse_df)
     plt.figure()
-    plt.bar(analyse_df.index, analyse_df['pass_rate'])
+    plt.bar(analyse_df.index, analyse_df['positive_rate'])
     plt.ylabel('Positive Rate')
     plt.title('Positive Rate of ' + feature)
 

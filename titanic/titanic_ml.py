@@ -1,191 +1,379 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-Created on 2017-12-07
-Update  on 2017-12-24
-Team:   一把梭
-Github: https://github.com/apachecn/kaggle
-"""
+# @Time : 2018/8/14 16:30
+# @Author : yangpingyan@gmail.com
 
-import numpy as np
+import time
+import os
+import csv
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier
-from sklearn.ensemble import VotingClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+from matplotlib.colors import ListedColormap
+from sklearn.naive_bayes import GaussianNB
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.linear_model import LogisticRegression, Perceptron
+from sklearn.linear_model import SGDClassifier
+from sklearn.svm import SVC, LinearSVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.model_selection import cross_val_predict, train_test_split
 from sklearn.model_selection import cross_val_score
+from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import precision_recall_curve, precision_score, recall_score, f1_score
+from sklearn.metrics import roc_curve, roc_auc_score
+from sklearn.model_selection import KFold
+from xgboost import XGBClassifier
+import lightgbm as lgb
+from tools_ml import *
+# Suppress warnings
+import warnings
 
-# 0. 数据读入及预处理
-root_path = 'datasets'
-data_train = pd.read_csv('%s/%s' % (root_path, 'train.csv'))
-# data_train.info()
-# print(data_train.describe())
+warnings.filterwarnings('ignore')
+# to make output display better
+pd.set_option('display.max_columns', 50)
+pd.set_option('display.max_rows', 20)
+pd.set_option('display.width', 1000)
+plt.rcParams['axes.labelsize'] = 14
+plt.rcParams['xtick.labelsize'] = 12
+plt.rcParams['ytick.labelsize'] = 12
+# read large csv file
+os.system("cd titanic")
+df = pd.read_csv('titanic_ml.csv', encoding='utf-8', engine='python')
+print("ML初始数据量: {}".format(df.shape))
+label = 'Survived'
 
-# 1. 去除唯一属性特
-data_train.drop(['PassengerId', 'Ticket'], axis=1, inplace=True)
-
-# 2. 类别特征One-Hot编码
-data_train['Sex'] = data_train['Sex'].map({'female': 0, 'male': 1}).astype(np.int64)
-data_train.loc[data_train.Embarked.isnull(), 'Embarked'] = 'S' # 2个Embarked缺失值直接填充为S
-data_train = pd.concat([data_train, pd.get_dummies(data_train.Embarked)], axis=1)
-data_train = data_train.rename(columns={'C': 'Cherbourg','Q': 'Queenstown','S': 'Southampton'})
-
-# 将名字转换
-def replace_name(x):
-    if 'Mrs' in x: return 'Mrs'
-    elif 'Mr' in x: return 'Mr'
-    elif 'Miss' in x: return 'Miss'
-    else: return 'Other'
-
-data_train['Name'] = data_train['Name'].map(lambda x:replace_name(x))
-data_train = pd.concat([data_train, pd.get_dummies(data_train.Name)], axis=1)
-data_train = data_train.rename(columns={'Miss': 'Name_Miss','Mr': 'Name_Mr',
-                                        'Mrs': 'Name_Mrs','Other': 'Name_Other'})
-
-# 3. 数值特征标准化
-def fun_scale(df_feature):
-    np_feature = df_feature.values.reshape(-1,1).astype(np.float64)
-    feature_scale = StandardScaler().fit(np_feature)
-    feature_scaled = StandardScaler().fit_transform(np_feature, feature_scale)
-    return feature_scale, feature_scaled
-
-Pclass_scale, data_train['Pclass_scaled'] = fun_scale(data_train['Pclass'])
-Fare_scale, data_train['Fare_scaled'] = fun_scale(data_train['Fare'])
-SibSp_scale, data_train['SibSp_scaled'] = fun_scale(data_train['SibSp'])
-Parch_scale, data_train['Parch_scaled'] = fun_scale(data_train['Parch'])
-
-# 4. 缺失值补全及相应处理
-# 处理Age缺失值并标准化
-# 缺失值处理函数
-def set_missing_feature(train_for_missingkey, data, info):
-    known_feature = train_for_missingkey[train_for_missingkey.Age.notnull()].as_matrix()
-    unknown_feature = train_for_missingkey[train_for_missingkey.Age.isnull()].as_matrix()
-    y = known_feature[:, 0] # 第1列作为待补全属性
-    x = known_feature[:, 1:] # 第2列及之后的属性作为预测属性
-    rf = RandomForestRegressor(random_state=0, n_estimators=100)
-    rf.fit(x, y)
-    print(info, "缺失值预测得分", rf.score(x, y))
-    predictage = rf.predict(unknown_feature[:, 1:])
-    data.loc[data.Age.isnull(), 'Age'] = predictage
-    return data
-
-train_for_missingkey_train = data_train[['Age','Survived','Sex','Name_Miss','Name_Mr','Name_Mrs',
-                                         'Name_Other','Fare_scaled','SibSp_scaled','Parch_scaled']]
-data_train = set_missing_feature(train_for_missingkey_train, data_train,'Train_Age')
-Age_scale, data_train['Age_scaled'] = fun_scale(data_train['Age'])
-
-# 处理Cabin特征
-def set_Cabin_type(df):
-    df.loc[ (df.Cabin.notnull()), 'Cabin' ] = 1.
-    df.loc[ (df.Cabin.isnull()), 'Cabin' ] = 0.
-    return df
-
-data_train = set_Cabin_type(data_train)
-
-# 5. 整合数据
-train_X = data_train[['Sex','Cabin','Cherbourg','Queenstown','Southampton','Name_Miss','Name_Mr','Name_Mrs','Name_Other',
-                      'Pclass_scaled','Fare_scaled','SibSp_scaled','Parch_scaled','Age_scaled']].as_matrix()
-train_y = data_train['Survived'].as_matrix()
-
-# 6. 模型搭建及交叉验证
-lr = LogisticRegression(C=1.0, tol=1e-6)
-svc = SVC(C=1.1, kernel='rbf', decision_function_shape='ovo')
-adaboost = AdaBoostClassifier(n_estimators=490, random_state=0)
-randomf = RandomForestClassifier(n_estimators=185, max_depth=5, random_state=0)
-gbdt = GradientBoostingClassifier(n_estimators=436, max_depth=2, random_state=0)
-VotingC = VotingClassifier(estimators=[('LR',lr),('SVC',svc),('AdaBoost',adaboost),
-                                      ('RandomF',randomf),('GBDT',gbdt)])
+x = df.drop([label], axis=1)
+y = df[label]
+## Splitting the dataset into the Training set and Test set
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
 
 '''
-# 交叉验证部分 #####
-param_test = {
-        'n_estimators': np.arange(200, 240, 1), 
-        'max_depth': np.arange(4, 7, 1), 
-        #'min_child_weight': np.arange(1, 6, 2), 
-        #'C': (1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9)
-        }
-
-from sklearn.grid_search import GridSearchCV
-
-grid_search = GridSearchCV(estimator=xgbClassifier, param_grid=param_test, scoring='roc_auc', cv=5)
-grid_search.fit(train_X,train_y)
-grid_search.grid_scores_, grid_search.best_params_, grid_search.best_score_
-# 交叉验证部分 #####
+With these two criteria - Supervised Learning plus Classification and Regression, 
+we can narrow down our choice of models to a few. These include:
+Logistic Regression
+KNN or k-Nearest Neighbors
+Support Vector Machines
+Naive Bayes classifier
+Decision Tree
+Random Forrest
+Perceptron
+Artificial neural network
+RVM or Relevance Vector Machine
+XGBoost
+LightGBM
 '''
+log_clf = LogisticRegression()
+log_clf.fit(x_train, y_train)
+y_pred = log_clf.predict(x_test)
+coeff_df = pd.DataFrame(x_test.columns.values)
+coeff_df.columns = ['Feature']
+coeff_df["Correlation"] = pd.Series(log_clf.coef_[0])
+coeff_df.sort_values(by='Correlation', ascending=False, inplace=True)
+print(coeff_df)
 
-# 模型训练及交叉验证
-classifierlist = [('LR',lr),('SVC',svc),('AdaBoost',adaboost),('RandomF',randomf),
-                  ('GBDT',gbdt),('VotingC',VotingC)]
-for name, classifier in classifierlist:
-    # 分类器训练与下一步交叉验证无关，训练是为下面测试集预测使用
-    classifier.fit(train_X, train_y) 
-    print(name, "Mean_Cross_Val_Score is:", 
-          cross_val_score(classifier, train_X, train_y, cv=5, scoring='accuracy').mean(), "\n")
+knn_clf = KNeighborsClassifier()
+gaussian_clf = GaussianNB()
+perceptron_clf = Perceptron()
+sgd_clf = SGDClassifier(max_iter=5)
+svm_clf = SVC(probability=True)
+linear_svc = LinearSVC()
+decision_tree = DecisionTreeClassifier()
+rnd_clf = RandomForestClassifier()
+xg_clf = XGBClassifier()
+lgbm = lgb.LGBMClassifier()
 
-# 7. 测试集处理
-data_test = pd.read_csv('test.csv')
-data_test.drop(['Ticket'], axis=1, inplace=True)
+clf_list = [lgbm, xg_clf, knn_clf, log_clf, sgd_clf, decision_tree, rnd_clf, gaussian_clf, linear_svc]
+score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'runtime', 'confusion_matrix'])
+for clf in clf_list:
+    starttime = time.clock()
+    clf.fit(x_train, y_train)
+    y_pred = clf.predict(x_test)
+    add_score(score_df, clf.__class__.__name__, time.clock() - starttime, y_pred, y_test)
 
-data_test['Sex'] = data_test['Sex'].map({'female': 0, 'male': 1}).astype(np.int64)
-data_test = pd.concat([data_test, pd.get_dummies(data_test.Embarked)], axis=1)
-data_test = data_test.rename(columns={'C': 'Cherbourg','Q': 'Queenstown','S': 'Southampton'})
+print(score_df)
 
-data_test['Name'] = data_test['Name'].map(lambda x:replace_name(x))
-data_test = pd.concat([data_test, pd.get_dummies(data_test.Name)], axis=1)
-data_test = data_test.rename(columns={'Miss': 'Name_Miss','Mr': 'Name_Mr',
-                                      'Mrs': 'Name_Mrs','Other': 'Name_Other'})
+# 使用PR曲线： 当正例较少或者关注假正例多假反例。 其他情况用ROC曲线
+plt.figure(figsize=(8, 6))
+plt.xlabel("Recall(FPR)", fontsize=16)
+plt.ylabel("Precision(TPR)", fontsize=16)
+plt.axis([0, 1, 0, 1])
+color = ['r', 'y', 'b', 'g', 'c']
+for cn, clf in enumerate((knn_clf, rnd_clf, xg_clf)):
+    print(clf.__class__.__name__)
+    y_train_pred = cross_val_predict(clf, x_train, y_train, cv=3)
+    if clf in (rnd_clf, knn_clf, decision_tree, gaussian_clf, xg_clf):
+        y_probas = cross_val_predict(clf, x_train, y_train, cv=3, method="predict_proba", n_jobs=-1)
+        y_scores = y_probas[:, 1]  # score = proba of positive class
+    else:
+        y_scores = cross_val_predict(clf, x_train, y_train, cv=3, method="decision_function", n_jobs=-1)
 
-# 测试集标准化函数
-def fun_test_scale(feature_scale, df_feature):
-    np_feature = df_feature.values.reshape(-1,1).astype(np.float64)
-    feature_scaled = StandardScaler().fit_transform(np_feature, feature_scale)
-    return feature_scaled
+    precisions, recalls, thresholds = precision_recall_curve(y_train, y_scores)
+    plt.plot(recalls, precisions, linewidth=1, label=clf.__class__.__name__, color=color[cn])
+    fpr, tpr, thresholds = roc_curve(y_train, y_scores)
+    print("{} roc socore: {}".format(clf.__class__.__name__, roc_auc_score(y_train, y_scores)))
+    plt.plot(fpr, tpr, linewidth=1, color=color[cn])
 
-data_test['Pclass_scaled'] = fun_test_scale(Pclass_scale, data_test['Pclass'])
-data_test.loc[data_test.Fare.isnull(),'Fare'] = 0 # 缺失值置为0
-data_test['Fare_scaled'] = fun_test_scale(Fare_scale, data_test['Fare'])
-data_test['SibSp_scaled'] = fun_test_scale(SibSp_scale, data_test['SibSp'])
-data_test['Parch_scaled'] = fun_test_scale(Parch_scale, data_test['Parch'])
+plt.legend()
+plt.show()
 
-# 处理测试集Age缺失值并归一化
-train_for_missingkey_test = data_test[['Age','Sex','Name_Miss','Name_Mr','Name_Mrs','Name_Other',
-                                       'Fare_scaled','SibSp_scaled','Parch_scaled']]
-data_test = set_missing_feature(train_for_missingkey_test, data_test, 'Test_Age')
-data_test['Age_scaled'] = fun_test_scale(Age_scale, data_test['Age'])
+# 模型微调，寻找最佳超参数
+# 网格搜索
+from sklearn.model_selection import GridSearchCV
 
-data_test = set_Cabin_type(data_test)
+param_grid = [
+    # try 12 (3×4) combinations of hyperparameters
+    {'n_estimators': [3, 10, 30], 'max_features': [2, 4, 6, 8]},
+    # then try 6 (2×3) combinations with bootstrap set as False
+    {'bootstrap': [False], 'n_estimators': [3, 10], 'max_features': [2, 3, 4]},
+]
+forest_clf = RandomForestClassifier()
+# train across 5 folds, that's a total of (12+6)*5=90 rounds of training
+grid_search = GridSearchCV(forest_clf, param_grid, cv=5, scoring='roc_auc', n_jobs=1, return_train_score=True)
+starttime = time.clock()
+grid_search.fit(x_train, y_train)
+print(time.clock() - starttime)
+# The best hyperparameter combination found:
+grid_search.best_params_
+grid_search.best_estimator_
+grid_search.best_score_
 
-test_X = data_test[['Sex','Cabin','Cherbourg','Queenstown','Southampton','Name_Miss','Name_Mr','Name_Mrs','Name_Other',
-                    'Pclass_scaled','Fare_scaled','SibSp_scaled','Parch_scaled','Age_scaled']].as_matrix()
+# Let's look at the score of each hyperparameter combination tested during the grid search:
+cvres = grid_search.cv_results_
+results = pd.DataFrame(grid_search.cv_results_)
+for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
+    print(np.sqrt(-mean_score), params)
 
-# 8. 模型预测
-model = classifierlist[4] # 选择分类器
-print("Test in %s!" % model[0])
-predictions = model[1].predict(test_X).astype(np.int32)
-result = pd.DataFrame({'PassengerId':data_test['PassengerId'].as_matrix(), 'Survived':predictions})
-result.to_csv('Result_with_%s.csv' % model[0], index=False)
-print('...\nAll Finish!')
+# 模型微调-随机搜索
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import randint
+
+param_distribs = {
+    'n_estimators': randint(low=1, high=200),
+    'max_features': randint(low=1, high=8),
+}
+
+forest_clf = RandomForestClassifier()
+rnd_search = RandomizedSearchCV(forest_clf, param_distributions=param_distribs,
+                                n_iter=10, cv=5, scoring='roc_auc', n_jobs=-1)
+starttime = time.clock()
+rnd_search.fit(x_train, y_train)
+print(time.clock() - starttime)
+rnd_search.best_params_
+rnd_search.best_estimator_
+rnd_search.best_score_
+cvres = rnd_search.cv_results_
+for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
+    print(np.sqrt(-mean_score), params)
+
+feature_importances = grid_search.best_estimator_.feature_importances_
+importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
+importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
+print(importance_df)
+
+# 分析最佳模型和它们的误差
+
+# 用测试集评估系统
+clf = grid_search.best_estimator_
+starttime = time.clock()
+clf.fit(x_train, y_train)
+y_pred = clf.predict(x_test)
+add_score(score_df, clf.__class__.__name__ + 'best', time.clock() - starttime, x_test, y_test)
+print(score_df)
+# 模型保存于加载
+# from sklearn.externals import joblib
+#
+# joblib.dump(my_model, "my_model.pkl")
+# my_model_loaded = joblib.load("my_model.pkl")
+
+# 然后就是项目的预上线阶段：你需要展示你的方案（重点说明学到了什么、做了什么、没做
+# 什么、做过什么假设、系统的限制是什么，等等），记录下所有事情，用漂亮的图表和容易
+# 记住的表达（比如，“收入中位数是房价最重要的预测量”）做一次精彩的展示。
 
 
-# 9. XGBoost
-import xgboost as xgb
+# LGBM
+from sklearn.model_selection import KFold
+from sklearn.metrics import roc_auc_score
+import lightgbm as lgb
+import gc
 
-from sklearn.model_selection import train_test_split
-x_train, x_valid, y_train, y_valid = train_test_split(train_X, train_y, test_size=0.1, random_state=0)
-print(x_train.shape, x_valid.shape)
 
-xgbClassifier = xgb.XGBClassifier(learning_rate = 0.1, 
-                                  n_estimators= 234,
-                                  max_depth= 6,
-                                  min_child_weight= 5,
-                                  gamma=0, 
-                                  subsample=0.8, 
-                                  colsample_bytree=0.8, 
-                                  objective= 'binary:logistic', 
-                                  scale_pos_weight=1)
+def model(features, test_features, encoding='ohe', n_folds=5):
+    """Train and test a light gradient boosting model using
+    cross validation.
 
-xgbClassifier.fit(train_X, train_y)
-xgbpred_test = xgbClassifier.predict(test_X).astype(np.int32)
-result = pd.DataFrame({'PassengerId':data_test['PassengerId'].as_matrix(), 'Survived':xgbpred_test})
-result.to_csv('Result_with_%s.csv' % 'XGBoost', index=False)
+    Parameters
+    --------
+        features (pd.DataFrame):
+            dataframe of training features to use
+            for training a model. Must include the TARGET column.
+        test_features (pd.DataFrame):
+            dataframe of testing features to use
+            for making predictions with the model.
+        encoding (str, default = 'ohe'):
+            method for encoding categorical variables. Either 'ohe' for one-hot encoding or 'le' for integer label encoding
+            n_folds (int, default = 5): number of folds to use for cross validation
+
+    Return
+    --------
+        submission (pd.DataFrame):
+            dataframe with `SK_ID_CURR` and `TARGET` probabilities
+            predicted by the model.
+        feature_importances (pd.DataFrame):
+            dataframe with the feature importances from the model.
+        valid_metrics (pd.DataFrame):
+            dataframe with training and validation metrics (ROC AUC) for each fold and overall.
+
+    """
+
+    # Extract the ids
+    train_ids = features['SK_ID_CURR']
+    test_ids = test_features['SK_ID_CURR']
+
+    # Extract the labels for training
+    labels = features['TARGET']
+
+    # Remove the ids and target
+    features = features.drop(columns=['SK_ID_CURR', 'TARGET'])
+    test_features = test_features.drop(columns=['SK_ID_CURR'])
+
+    # One Hot Encoding
+    if encoding == 'ohe':
+        features = pd.get_dummies(features)
+        test_features = pd.get_dummies(test_features)
+
+        # Align the dataframes by the columns
+        features, test_features = features.align(test_features, join='inner', axis=1)
+
+        # No categorical indices to record
+        cat_indices = 'auto'
+
+    # Integer label encoding
+    elif encoding == 'le':
+
+        # Create a label encoder
+        label_encoder = LabelEncoder()
+
+        # List for storing categorical indices
+        cat_indices = []
+
+        # Iterate through each column
+        for i, col in enumerate(features):
+            if features[col].dtype == 'object':
+                # Map the categorical features to integers
+                features[col] = label_encoder.fit_transform(np.array(features[col].astype(str)).reshape((-1,)))
+                test_features[col] = label_encoder.transform(np.array(test_features[col].astype(str)).reshape((-1,)))
+
+                # Record the categorical indices
+                cat_indices.append(i)
+
+    # Catch error if label encoding scheme is not valid
+    else:
+        raise ValueError("Encoding must be either 'ohe' or 'le'")
+
+    print('Training Data Shape: ', features.shape)
+    print('Testing Data Shape: ', test_features.shape)
+
+    # Extract feature names
+    feature_names = list(features.columns)
+
+    # Convert to np arrays
+    features = np.array(features)
+    test_features = np.array(test_features)
+
+    # Create the kfold object
+    k_fold = KFold(n_splits=n_folds, shuffle=True, random_state=50)
+
+    # Empty array for feature importances
+    feature_importance_values = np.zeros(len(feature_names))
+
+    # Empty array for test predictions
+    test_predictions = np.zeros(test_features.shape[0])
+
+    # Empty array for out of fold validation predictions
+    out_of_fold = np.zeros(features.shape[0])
+
+    # Lists for recording validation and training scores
+    valid_scores = []
+    train_scores = []
+
+    # Iterate through each fold
+    for train_indices, valid_indices in k_fold.split(features):
+        # Training data for the fold
+        train_features, train_labels = features[train_indices], labels[train_indices]
+        # Validation data for the fold
+        valid_features, valid_labels = features[valid_indices], labels[valid_indices]
+
+        # Create the model
+        model = lgb.LGBMClassifier(n_estimators=10000, objective='binary',
+                                   class_weight='balanced', learning_rate=0.05,
+                                   reg_alpha=0.1, reg_lambda=0.1,
+                                   subsample=0.8, n_jobs=-1, random_state=50)
+
+        # Train the model
+        model.fit(train_features, train_labels, eval_metric='auc',
+                  eval_set=[(valid_features, valid_labels), (train_features, train_labels)],
+                  eval_names=['valid', 'train'], categorical_feature=cat_indices,
+                  early_stopping_rounds=100, verbose=200)
+
+        # Record the best iteration
+        best_iteration = model.best_iteration_
+
+        # Record the feature importances
+        feature_importance_values += model.feature_importances_ / k_fold.n_splits
+
+        # Make predictions
+        test_predictions += model.predict_proba(test_features, num_iteration=best_iteration)[:, 1] / k_fold.n_splits
+
+        # Record the out of fold predictions
+        out_of_fold[valid_indices] = model.predict_proba(valid_features, num_iteration=best_iteration)[:, 1]
+
+        # Record the best score
+        valid_score = model.best_score_['valid']['auc']
+        train_score = model.best_score_['train']['auc']
+
+        valid_scores.append(valid_score)
+        train_scores.append(train_score)
+
+        # Clean up memory
+        gc.enable()
+        del model, train_features, valid_features
+        gc.collect()
+
+    # Make the submission dataframe
+    submission = pd.DataFrame({'SK_ID_CURR': test_ids, 'TARGET': test_predictions})
+
+    # Make the feature importance dataframe
+    feature_importances = pd.DataFrame({'feature': feature_names, 'importance': feature_importance_values})
+
+    # Overall validation score
+    valid_auc = roc_auc_score(labels, out_of_fold)
+
+    # Add the overall scores to the metrics
+    valid_scores.append(valid_auc)
+    train_scores.append(np.mean(train_scores))
+
+    # Needed for creating dataframe of validation scores
+    fold_names = list(range(n_folds))
+    fold_names.append('overall')
+
+    # Dataframe of validation scores
+    metrics = pd.DataFrame({'fold': fold_names,
+                            'train': train_scores,
+                            'valid': valid_scores})
+
+    return submission, feature_importances, metrics
+
+
+submission, fi, metrics = model(app_train, app_test)
+print('Baseline metrics')
+print(metrics)
+
+
+submission = pd.DataFrame({
+        "PassengerId": test_df["PassengerId"],
+        "Survived": Y_pred
+    })
+# submission.to_csv('submission.csv', index=False)
