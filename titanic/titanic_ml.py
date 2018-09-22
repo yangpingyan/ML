@@ -40,7 +40,10 @@ plt.rcParams['axes.labelsize'] = 14
 plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
 # read large csv file
-os.system("cd titanic")
+if os.getcwd().find('titanic') == -1:
+    os.chdir('titanic')
+
+
 df = pd.read_csv('titanic_ml.csv', encoding='utf-8', engine='python')
 print("ML初始数据量: {}".format(df.shape))
 label = 'Survived'
