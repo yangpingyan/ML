@@ -236,3 +236,4 @@ submission = pd.DataFrame({
 submission.to_csv('submission.csv', index=False)
 
 # kaggle competitions submit -c titanic -f titanic/submission.csv -m "XGBOOSING"
+
