@@ -29,12 +29,8 @@ import sklearn
 import xgboost as xgb
 import seaborn as sns
 import matplotlib.pyplot as plt
-get_ipython().run_line_magic('matplotlib', 'inline')
 
-import plotly.offline as py
-py.init_notebook_mode(connected=True)
-import plotly.graph_objs as go
-import plotly.tools as tls
+
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -51,8 +47,9 @@ from sklearn.cross_validation import KFold
 # Now we will proceed much like how most kernels in general are structured, and that is to first explore the data on hand, identify possible feature engineering opportunities as well as numerically encode any categorical features.
 
 # In[ ]:
-
-
+import os
+if os.getcwd().find('titanic') == -1:
+    os.chdir('titanic')
 # Load in the train and test datasets
 train = pd.read_csv('train.csv')
 test = pd.read_csv('test.csv')
@@ -183,12 +180,6 @@ train.head(3)
 # In[ ]:
 
 
-colormap = plt.cm.RdBu
-plt.figure(figsize=(14,12))
-plt.title('Pearson Correlation of Features', y=1.05, size=15)
-sns.heatmap(train.astype(float).corr(),linewidths=0.1,vmax=1.0, 
-            square=True, cmap=colormap, linecolor='white', annot=True)
-
 
 # **Takeaway from the Plots**
 # 
@@ -201,9 +192,7 @@ sns.heatmap(train.astype(float).corr(),linewidths=0.1,vmax=1.0,
 # In[ ]:
 
 
-g = sns.pairplot(train[[u'Survived', u'Pclass', u'Sex', u'Age', u'Parch', u'Fare', u'Embarked',
-       u'FamilySize', u'Title']], hue='Survived', palette = 'seismic',size=1.2,diag_kind = 'kde',diag_kws=dict(shade=True),plot_kws=dict(s=10) )
-g.set(xticklabels=[])
+
 
 
 # # Ensembling & Stacking models
@@ -448,164 +437,6 @@ feature_dataframe = pd.DataFrame( {'features': cols,
 
 # In[ ]:
 
-
-# Scatter plot 
-trace = go.Scatter(
-    y = feature_dataframe['Random Forest feature importances'].values,
-    x = feature_dataframe['features'].values,
-    mode='markers',
-    marker=dict(
-        sizemode = 'diameter',
-        sizeref = 1,
-        size = 25,
-#       size= feature_dataframe['AdaBoost feature importances'].values,
-        #color = np.random.randn(500), #set color equal to a variable
-        color = feature_dataframe['Random Forest feature importances'].values,
-        colorscale='Portland',
-        showscale=True
-    ),
-    text = feature_dataframe['features'].values
-)
-data = [trace]
-
-layout= go.Layout(
-    autosize= True,
-    title= 'Random Forest Feature Importance',
-    hovermode= 'closest',
-#     xaxis= dict(
-#         title= 'Pop',
-#         ticklen= 5,
-#         zeroline= False,
-#         gridwidth= 2,
-#     ),
-    yaxis=dict(
-        title= 'Feature Importance',
-        ticklen= 5,
-        gridwidth= 2
-    ),
-    showlegend= False
-)
-fig = go.Figure(data=data, layout=layout)
-py.iplot(fig,filename='scatter2010')
-
-# Scatter plot 
-trace = go.Scatter(
-    y = feature_dataframe['Extra Trees  feature importances'].values,
-    x = feature_dataframe['features'].values,
-    mode='markers',
-    marker=dict(
-        sizemode = 'diameter',
-        sizeref = 1,
-        size = 25,
-#       size= feature_dataframe['AdaBoost feature importances'].values,
-        #color = np.random.randn(500), #set color equal to a variable
-        color = feature_dataframe['Extra Trees  feature importances'].values,
-        colorscale='Portland',
-        showscale=True
-    ),
-    text = feature_dataframe['features'].values
-)
-data = [trace]
-
-layout= go.Layout(
-    autosize= True,
-    title= 'Extra Trees Feature Importance',
-    hovermode= 'closest',
-#     xaxis= dict(
-#         title= 'Pop',
-#         ticklen= 5,
-#         zeroline= False,
-#         gridwidth= 2,
-#     ),
-    yaxis=dict(
-        title= 'Feature Importance',
-        ticklen= 5,
-        gridwidth= 2
-    ),
-    showlegend= False
-)
-fig = go.Figure(data=data, layout=layout)
-py.iplot(fig,filename='scatter2010')
-
-# Scatter plot 
-trace = go.Scatter(
-    y = feature_dataframe['AdaBoost feature importances'].values,
-    x = feature_dataframe['features'].values,
-    mode='markers',
-    marker=dict(
-        sizemode = 'diameter',
-        sizeref = 1,
-        size = 25,
-#       size= feature_dataframe['AdaBoost feature importances'].values,
-        #color = np.random.randn(500), #set color equal to a variable
-        color = feature_dataframe['AdaBoost feature importances'].values,
-        colorscale='Portland',
-        showscale=True
-    ),
-    text = feature_dataframe['features'].values
-)
-data = [trace]
-
-layout= go.Layout(
-    autosize= True,
-    title= 'AdaBoost Feature Importance',
-    hovermode= 'closest',
-#     xaxis= dict(
-#         title= 'Pop',
-#         ticklen= 5,
-#         zeroline= False,
-#         gridwidth= 2,
-#     ),
-    yaxis=dict(
-        title= 'Feature Importance',
-        ticklen= 5,
-        gridwidth= 2
-    ),
-    showlegend= False
-)
-fig = go.Figure(data=data, layout=layout)
-py.iplot(fig,filename='scatter2010')
-
-# Scatter plot 
-trace = go.Scatter(
-    y = feature_dataframe['Gradient Boost feature importances'].values,
-    x = feature_dataframe['features'].values,
-    mode='markers',
-    marker=dict(
-        sizemode = 'diameter',
-        sizeref = 1,
-        size = 25,
-#       size= feature_dataframe['AdaBoost feature importances'].values,
-        #color = np.random.randn(500), #set color equal to a variable
-        color = feature_dataframe['Gradient Boost feature importances'].values,
-        colorscale='Portland',
-        showscale=True
-    ),
-    text = feature_dataframe['features'].values
-)
-data = [trace]
-
-layout= go.Layout(
-    autosize= True,
-    title= 'Gradient Boosting Feature Importance',
-    hovermode= 'closest',
-#     xaxis= dict(
-#         title= 'Pop',
-#         ticklen= 5,
-#         zeroline= False,
-#         gridwidth= 2,
-#     ),
-    yaxis=dict(
-        title= 'Feature Importance',
-        ticklen= 5,
-        gridwidth= 2
-    ),
-    showlegend= False
-)
-fig = go.Figure(data=data, layout=layout)
-py.iplot(fig,filename='scatter2010')
-
-
 # Now let us calculate the mean of all the feature importances and store it as a new column in the feature importance dataframe.
 
 # In[ ]:
@@ -626,39 +457,6 @@ feature_dataframe.head(3)
 
 y = feature_dataframe['mean'].values
 x = feature_dataframe['features'].values
-data = [go.Bar(
-            x= x,
-             y= y,
-            width = 0.5,
-            marker=dict(
-               color = feature_dataframe['mean'].values,
-            colorscale='Portland',
-            showscale=True,
-            reversescale = False
-            ),
-            opacity=0.6
-        )]
-
-layout= go.Layout(
-    autosize= True,
-    title= 'Barplots of Mean Feature Importance',
-    hovermode= 'closest',
-#     xaxis= dict(
-#         title= 'Pop',
-#         ticklen= 5,
-#         zeroline= False,
-#         gridwidth= 2,
-#     ),
-    yaxis=dict(
-        title= 'Feature Importance',
-        ticklen= 5,
-        gridwidth= 2
-    ),
-    showlegend= False
-)
-fig = go.Figure(data=data, layout=layout)
-py.iplot(fig, filename='bar-direct-labels')
-
 
 # # Second-Level Predictions from the First-level Output
 
@@ -681,18 +479,6 @@ base_predictions_train.head()
 
 # In[ ]:
 
-
-data = [
-    go.Heatmap(
-        z= base_predictions_train.astype(float).corr().values ,
-        x=base_predictions_train.columns.values,
-        y= base_predictions_train.columns.values,
-          colorscale='Viridis',
-            showscale=True,
-            reversescale = True
-    )
-]
-py.iplot(data, filename='labelled-heatmap')
 
 
 # There have been quite a few articles and Kaggle competition winner stories about the merits of having trained models that are more uncorrelated with one another producing better scores.

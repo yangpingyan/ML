@@ -3,27 +3,38 @@
 # @Time : 2018/9/21 17:58
 # @Author : yangpingyan@gmail.com
 
+
+import time
+import os
 import csv
-import json
-import seaborn as sns
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+from lightgbm import LGBMClassifier
 from matplotlib.colors import ListedColormap
-import time
-import os
-
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import RandomizedSearchCV
-from scipy.stats import randint
-# Suppress warnings
-import warnings
+from sklearn.naive_bayes import GaussianNB
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.linear_model import LogisticRegression, Perceptron
+from sklearn.linear_model import SGDClassifier
+from sklearn.svm import SVC, LinearSVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import VotingClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.model_selection import cross_val_predict, train_test_split, StratifiedShuffleSplit
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import precision_recall_curve, precision_score, recall_score, f1_score
+from sklearn.metrics import roc_curve, roc_auc_score
+from sklearn.model_selection import KFold
+from sklearn.model_selection import GridSearchCV
 
 from xgboost import XGBClassifier
-
 from tools_ml import *
+# Suppress warnings
+import warnings
 
 warnings.filterwarnings('ignore')
 # to make output display better
@@ -183,51 +194,54 @@ plt.title('Pearson Correlation of Features', y=1.05, size=15)
 sns.heatmap(df_train.astype(float).corr(), linewidths=0.1, vmax=1.0,
             square=True, cmap=plt.cm.RdBu, linecolor='white', annot=True)
 
-
-
 # 机器学习 模型微调-随机搜索
-x = df_train.drop("Survived", axis=1)
-y = df_train["Survived"]
-## Splitting the dataset into the Training set and Test set
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+classifiers = [
+    KNeighborsClassifier(3),
+    SVC(probability=True),
+    DecisionTreeClassifier(),
+    RandomForestClassifier(),
+	AdaBoostClassifier(),
+    GradientBoostingClassifier(),
+    GaussianNB(),
+    LinearDiscriminantAnalysis(),
+    QuadraticDiscriminantAnalysis(),
+    LogisticRegression(),
+    SGDClassifier(max_iter=5),
+    Perceptron(),
+    XGBClassifier(),
+    LGBMClassifier()]
 
-param_distribs = {
-    'n_estimators': randint(low=1, high=200),
-    'max_features': randint(low=1, high=8),
-}
-forest_clf = RandomForestClassifier()
-rnd_search = RandomizedSearchCV(forest_clf, param_distributions=param_distribs,
-                                n_iter=10, cv=5, scoring='roc_auc', n_jobs=-1)
-rnd_search.fit(x_train, y_train)
-rnd_search.best_params_
-rnd_search.best_estimator_
-rnd_search.best_score_
-cvres = rnd_search.cv_results_
-feature_importances = rnd_search.best_estimator_.feature_importances_
-importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
-importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
-print(importance_df)
-# 用测试集评估系统
-clf = rnd_search.best_estimator_
-starttime = time.clock()
-clf.fit(x_train, y_train)
-y_pred = clf.predict(x_test)
-score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'runtime', 'confusion_matrix'])
-add_score(score_df, clf.__class__.__name__ + 'best', time.clock() - starttime, y_pred, y_test)
-print(score_df)
 
-# XGBOOSTING
-xgb_clf = XGBClassifier()
-starttime = time.clock()
-xgb_clf.fit(x_train, y_train)
-y_pred = xgb_clf.predict(x_test)
-score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'runtime', 'confusion_matrix'])
-add_score(score_df, xgb_clf.__class__.__name__ + 'best', time.clock() - starttime, y_pred, y_test)
-print(score_df)
+label = 'Survived'
+sss = StratifiedShuffleSplit(n_splits=10, test_size=0.1, random_state=0)
+
+x = df_train.drop([label], axis=1).values
+y = df_train[label].values
+
+acc_dict = {}
+
+for train_index, test_index in sss.split(x, y):
+    x_train, x_test = x[train_index], x[test_index]
+    y_train, y_test = y[train_index], y[test_index]
+
+    for clf in classifiers:
+        name = clf.__class__.__name__
+        clf.fit(x_train, y_train)
+        train_predictions = clf.predict(x_test)
+        acc = accuracy_score(y_test, train_predictions)
+        if name in acc_dict:
+            acc_dict[name] += acc
+        else:
+            acc_dict[name] = acc
+
+df_accuracy = pd.DataFrame.from_dict(acc_dict, orient='index', columns=['accuracy'])
+print("Highest accuracy is {}, model is {}".format(df_accuracy['accuracy'].max(), df_accuracy['accuracy'].idxmax()))
 
 # 预测test.csv
-x_submission  = df_test.drop("PassengerId", axis=1).copy()
-y_submission = xgb_clf.predict(x_submission)
+clf = LGBMClassifier()
+clf.fit(x, y)
+x_submission = df_test.drop("PassengerId", axis=1).copy()
+y_submission = clf.predict(x_submission)
 
 submission = pd.DataFrame({
     "PassengerId": df_test["PassengerId"],
@@ -235,5 +249,4 @@ submission = pd.DataFrame({
 })
 submission.to_csv('submission.csv', index=False)
 
-# kaggle competitions submit -c titanic -f titanic/submission.csv -m "XGBOOSING"
-
+# kaggle competitions submit -c titanic -f titanic/submission.csv -m "LGBMClassifier"

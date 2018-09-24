@@ -16,9 +16,9 @@ from sklearn.metrics import precision_recall_curve, precision_score, recall_scor
 from sklearn.metrics import roc_curve, roc_auc_score, confusion_matrix, accuracy_score
 
 # 保存所有模型得分
-def add_score(score_df, name, runtime, y_pred, y_test):
+def add_score(score_df, name, y_pred, y_test):
     score_df[name] = [accuracy_score(y_test, y_pred), precision_score(y_test, y_pred), recall_score(y_test, y_pred),
-                      f1_score(y_test, y_pred), runtime, confusion_matrix(y_test, y_pred)]
+                      f1_score(y_test, y_pred), confusion_matrix(y_test, y_pred)]
 
     return score_df
 
