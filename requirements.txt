@@ -22,6 +22,7 @@ numpy
 scipy
 matplotlib
 tensorflow
+tensorflow-gpu
 keras
 scikit-learn
 ipython
