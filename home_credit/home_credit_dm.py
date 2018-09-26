@@ -52,24 +52,20 @@ plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 csv.field_size_limit(100000000)
 
 # ## 获取数据
-# 数据已经从数据库中导出成csv文件，直接读取即可。后面数据的读取更改为从备份数据库直接读取，不仅可以保证数据的完整，还可以避免重名字段处理的麻烦。
-# PROJECT_ROOT_DIR = os.getcwd()
-# dataset_path = "datasets"
-# DATASETS_PATH = os.path.join(PROJECT_ROOT_DIR, dataset_path, "train.csv")
-
 if os.getcwd().find('titanic') == -1:
     os.chdir('titanic')
 
-df_train = pd.read_csv("train.csv", encoding='utf-8', engine='python')
-df_test = pd.read_csv("test.csv", encoding='utf-8', engine='python')
-combine = [df_train, df_test]
+df_train = pd.read_csv(r"d:\datasets_ml\home_credit\application_train.csv", encoding='utf-8', engine='python')
+df_test = pd.read_csv(r"d:\datasets_ml\home_credit\application_test.csv", encoding='utf-8', engine='python')
 print("初始数据量: {}".format(df_train.shape))
-
+target = 'TARGET'
 # ## 数据简单计量分析
 # 查看头尾数据
 df_train
-# 所有特征值
-df_train.columns.values
+df_train[target].value_counts()
+df_train[target].astype(int).plot.hist()
+plt.hist(df_train[target])
+plt.figure()
 # 查看数据类型
 df_train.dtypes.value_counts()
 # 缺失值比率
