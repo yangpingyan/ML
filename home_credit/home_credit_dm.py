@@ -63,9 +63,6 @@ target = 'TARGET'
 # 查看头尾数据
 df_train
 df_train[target].value_counts()
-df_train[target].astype(int).plot.hist()
-plt.hist(df_train[target])
-plt.figure()
 # 查看数据类型
 df_train.dtypes.value_counts()
 # 缺失值比率
@@ -77,11 +74,92 @@ df_train.describe()
 # 类别描述
 df_train.describe(include='O')
 
+
+# Create a label encoder object
+le = LabelEncoder()
+le_count = 0
+# Iterate through the columns
+for col in df_train:
+    if df_train[col].dtype == 'object':
+        # If 2 or fewer unique categories
+        if len(list(df_train[col].unique())) <= 2:
+            # Train on the training data
+            le.fit(df_train[col])
+            # Transform both training and testing data
+            df_train[col] = le.transform(df_train[col])
+            df_test[col] = le.transform(df_test[col])
+
+            # Keep track of how many columns were label encoded
+            le_count += 1
+
+print('%d columns were label encoded.' % le_count)
+
+# one-hot encoding of categorical variables
+df_train = pd.get_dummies(df_train)
+df_test = pd.get_dummies(df_test)
+
+print('Training Features shape: ', df_train.shape)
+print('Testing Features shape: ', df_test.shape)
+
+train_labels = df_train['TARGET']
+
+# Align the training and testing data, keep only columns present in both dataframes
+df_train, df_test = df_train.align(df_test, join = 'inner', axis = 1)
+
+# Add the target back in
+df_train['TARGET'] = train_labels
+
+print('Training Features shape: ', df_train.shape)
+print('Testing Features shape: ', df_test.shape)
+
+(df_train['DAYS_BIRTH'] / -365).describe()
+anom = df_train[df_train['DAYS_EMPLOYED'] == 365243]
+non_anom = df_train[df_train['DAYS_EMPLOYED'] != 365243]
+print('The non-anomalies default on %0.2f%% of loans' % (100 * non_anom['TARGET'].mean()))
+print('The anomalies default on %0.2f%% of loans' % (100 * anom['TARGET'].mean()))
+print('There are %d anomalous days of employment' % len(anom))
+
+# Create an anomalous flag column
+df_train['DAYS_EMPLOYED_ANOM'] = df_train["DAYS_EMPLOYED"] == 365243
+
+# Replace the anomalous values with nan
+df_train['DAYS_EMPLOYED'].replace({365243: np.nan}, inplace = True)
+
+df_train['DAYS_EMPLOYED'].plot.hist(title = 'Days Employment Histogram');
+plt.xlabel('Days Employment');
+
+df_test['DAYS_EMPLOYED_ANOM'] = df_test["DAYS_EMPLOYED"] == 365243
+df_test["DAYS_EMPLOYED"].replace({365243: np.nan}, inplace = True)
+
+print('There are %d anomalies in the test data out of %d entries' % (df_test["DAYS_EMPLOYED_ANOM"].sum(), len(df_test)))
+
+# Find correlations with the target and sort
+correlations = df_train.corr()['TARGET'].sort_values()
+
+# Display correlations
+print('Most Positive Correlations:\n', correlations.tail(15))
+print('\nMost Negative Correlations:\n', correlations.head(15))
+
+# Find the correlation of the positive days since birth and target
+df_train['DAYS_BIRTH'] = abs(df_train['DAYS_BIRTH'])
+df_train['DAYS_BIRTH'].corr(df_train['TARGET'])
+
+# Set the style of plots
+plt.style.use('fivethirtyeight')
+
+# Plot the distribution of ages in years
+plt.hist(df_train['DAYS_BIRTH'] / 365, edgecolor = 'k', bins = 25)
+plt.title('Age of Client'); plt.xlabel('Age (years)'); plt.ylabel('Count');
 # 分析特征
 feature_analyse(df_train, 'Pclass', 'Survived')
+
+
+
 # 特征选择
 # f_classif
 # mutual_info_classif
+
+
 # 丢弃不需要的特征
 df_train.drop(['Ticket', 'Cabin'], axis=1, inplace=True)
 df_test.drop(['Ticket', 'Cabin'], axis=1, inplace=True)
