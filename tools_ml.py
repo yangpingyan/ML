@@ -15,6 +15,21 @@ import os
 from sklearn.metrics import precision_recall_curve, precision_score, recall_score, f1_score
 from sklearn.metrics import roc_curve, roc_auc_score, confusion_matrix, accuracy_score
 
+def pairs_plot(plot_data, target='TARGET'):
+    # Create the pairgrid object
+    grid = sns.PairGrid(data=plot_data, size=3, diag_sharey=False,
+                        hue='TARGET',
+                        vars=[x for x in list(plot_data.columns) if x != 'TARGET'])
+    # Upper is a scatter plot
+    grid.map_upper(plt.scatter, alpha=0.2)
+    # Diagonal is a histogram
+    grid.map_diag(sns.kdeplot)
+    # Bottom is density plot
+    grid.map_lower(sns.kdeplot, cmap=plt.cm.OrRd_r)
+    plt.suptitle('Pairs Plot', size=32, y=1.05)
+    plt.legend()
+    plt.show()
+
 # 保存所有模型得分
 def add_score(score_df, name, y_pred, y_test):
     score_df[name] = [accuracy_score(y_test, y_pred), precision_score(y_test, y_pred), recall_score(y_test, y_pred),
@@ -84,7 +99,7 @@ def feature_analyse(df, feature, label='check_result', bins=10):
     plt.title('Positive Rate of ' + feature)
     if df[feature].dtype != 'object':
         df.drop([feature_band], axis=1, errors='ignore', inplace=True)
-
+    plt.show()
 
 # KDE plot
 def feature_kdeplot(df, feature, label='check_result'):
@@ -94,6 +109,7 @@ def feature_kdeplot(df, feature, label='check_result'):
     plt.xlabel(feature)
     plt.ylabel('Density')
     plt.title('Distribution of ' + feature)
+    plt.show()
 
 def plot_feature_importances(df):
     """

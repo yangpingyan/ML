@@ -7,6 +7,7 @@
 import time
 import os
 import csv
+import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,10 +34,13 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 
 from xgboost import XGBClassifier
-from tools_ml import *
+
 # Suppress warnings
 import warnings
 from scipy.stats import randint
+
+sys.path.append(r'C:\Users\Administrator\iCloudDrive\code\ML')
+from tools_ml import *
 
 warnings.filterwarnings('ignore')
 # to make output display better
@@ -52,9 +56,6 @@ plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 csv.field_size_limit(100000000)
 
 # ## 获取数据
-if os.getcwd().find('titanic') == -1:
-    os.chdir('titanic')
-
 df_train = pd.read_csv(r"d:\datasets_ml\home_credit\application_train.csv", encoding='utf-8', engine='python')
 df_test = pd.read_csv(r"d:\datasets_ml\home_credit\application_test.csv", encoding='utf-8', engine='python')
 print("初始数据量: {}".format(df_train.shape))
@@ -73,7 +74,6 @@ df_train.select_dtypes('object').apply(pd.Series.nunique, axis=0)
 df_train.describe()
 # 类别描述
 df_train.describe(include='O')
-
 
 # Create a label encoder object
 le = LabelEncoder()
@@ -104,7 +104,7 @@ print('Testing Features shape: ', df_test.shape)
 train_labels = df_train['TARGET']
 
 # Align the training and testing data, keep only columns present in both dataframes
-df_train, df_test = df_train.align(df_test, join = 'inner', axis = 1)
+df_train, df_test = df_train.align(df_test, join='inner', axis=1)
 
 # Add the target back in
 df_train['TARGET'] = train_labels
@@ -123,13 +123,13 @@ print('There are %d anomalous days of employment' % len(anom))
 df_train['DAYS_EMPLOYED_ANOM'] = df_train["DAYS_EMPLOYED"] == 365243
 
 # Replace the anomalous values with nan
-df_train['DAYS_EMPLOYED'].replace({365243: np.nan}, inplace = True)
+df_train['DAYS_EMPLOYED'].replace({365243: np.nan}, inplace=True)
 
-df_train['DAYS_EMPLOYED'].plot.hist(title = 'Days Employment Histogram');
+df_train['DAYS_EMPLOYED'].plot.hist(title='Days Employment Histogram');
 plt.xlabel('Days Employment');
 
 df_test['DAYS_EMPLOYED_ANOM'] = df_test["DAYS_EMPLOYED"] == 365243
-df_test["DAYS_EMPLOYED"].replace({365243: np.nan}, inplace = True)
+df_test["DAYS_EMPLOYED"].replace({365243: np.nan}, inplace=True)
 
 print('There are %d anomalies in the test data out of %d entries' % (df_test["DAYS_EMPLOYED_ANOM"].sum(), len(df_test)))
 
@@ -148,8 +148,10 @@ df_train['DAYS_BIRTH'].corr(df_train['TARGET'])
 plt.style.use('fivethirtyeight')
 
 # Plot the distribution of ages in years
-plt.hist(df_train['DAYS_BIRTH'] / 365, edgecolor = 'k', bins = 25)
-plt.title('Age of Client'); plt.xlabel('Age (years)'); plt.ylabel('Count');
+plt.hist(df_train['DAYS_BIRTH'] / 365, edgecolor='k', bins=25)
+plt.title('Age of Client');
+plt.xlabel('Age (years)');
+plt.ylabel('Count');
 
 plt.figure(figsize=(10, 8))
 
@@ -176,7 +178,6 @@ age_data.head(10)
 age_groups = age_data.groupby('YEARS_BINNED').mean()
 age_groups
 
-
 plt.figure(figsize=(8, 8))
 
 # Graph the age bins and the average of the target as a bar plot
@@ -188,29 +189,10 @@ plt.xlabel('Age Group (years)');
 plt.ylabel('Failure to Repay (%)')
 plt.title('Failure to Repay by Age Group');
 
-# There is a clear trend: younger applicants are more likely to not repay the loan! The rate of failure to repay is above 10% for the youngest three age groups and beolow 5% for the oldest age group.
-# 
-# This is information that could be directly used by the bank: because younger clients are less likely to repay the loan, maybe they should be provided with more guidance or financial planning tips. This does not mean the bank should discriminate against younger clients, but it would be smart to take precautionary measures to help younger clients pay on time.
-
-# ### Exterior Sources
-# 
-# The 3 variables with the strongest negative correlations with the target are `EXT_SOURCE_1`, `EXT_SOURCE_2`, and `EXT_SOURCE_3`.
-# According to the documentation, these features represent a "normalized score from external data source". I'm not sure what this exactly means, but it may be a cumulative sort of credit rating made using numerous sources of data. 
-# 
-# Let's take a look at these variables.
-# 
-# First, we can show the correlations of the `EXT_SOURCE` features with the target and with each other.
-
-# In[ ]:
-
-
 # Extract the EXT_SOURCE variables and show correlations
 ext_data = df_train[['TARGET', 'EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3', 'DAYS_BIRTH']]
 ext_data_corrs = ext_data.corr()
 ext_data_corrs
-
-# In[ ]:
-
 
 plt.figure(figsize=(8, 6))
 
@@ -224,24 +206,6 @@ plt.title('Correlation Heatmap');
 
 # In[ ]:
 
-
-plt.figure(figsize=(10, 12))
-
-# iterate through the sources
-for i, source in enumerate(['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']):
-    # create a new subplot for each source
-    plt.subplot(3, 1, i + 1)
-    # plot repaid loans
-    sns.kdeplot(df_train.loc[df_train['TARGET'] == 0, source], label='target == 0')
-    # plot loans that were not repaid
-    sns.kdeplot(df_train.loc[df_train['TARGET'] == 1, source], label='target == 1')
-
-    # Label the plots
-    plt.title('Distribution of %s by Target Value' % source)
-    plt.xlabel('%s' % source);
-    plt.ylabel('Density');
-
-plt.tight_layout(h_pad=2.5)
 
 # `EXT_SOURCE_3` displays the greatest difference between the values of the target. We can clearly see that this feature has some relationship to the likelihood of an applicant to repay a loan. The relationship is not very strong (in fact they are all [considered very weak](http://www.statstutor.ac.uk/resources/uploaded/pearsons.pdf), but these variables will still be useful for a machine learning model to predict whether or not an applicant will repay a loan on time.
 
@@ -259,62 +223,9 @@ plot_data = ext_data.drop(columns=['DAYS_BIRTH']).copy()
 
 # Add in the age of the client in years
 plot_data['YEARS_BIRTH'] = age_data['YEARS_BIRTH']
-
 # Drop na values and limit to first 100000 rows
 plot_data = plot_data.dropna().loc[:100000, :]
-
-
-# Function to calculate correlation coefficient between two columns
-def corr_func(x, y, **kwargs):
-    r = np.corrcoef(x, y)[0][1]
-    ax = plt.gca()
-    ax.annotate("r = {:.2f}".format(r),
-                xy=(.2, .8), xycoords=ax.transAxes,
-                size=20)
-
-
-# Create the pairgrid object
-grid = sns.PairGrid(data=plot_data, size=3, diag_sharey=False,
-                    hue='TARGET',
-                    vars=[x for x in list(plot_data.columns) if x != 'TARGET'])
-
-# Upper is a scatter plot
-grid.map_upper(plt.scatter, alpha=0.2)
-
-# Diagonal is a histogram
-grid.map_diag(sns.kdeplot)
-
-# Bottom is density plot
-grid.map_lower(sns.kdeplot, cmap=plt.cm.OrRd_r);
-
-plt.suptitle('Ext Source and Age Features Pairs Plot', size=32, y=1.05);
-
-# In this plot, the red indicates loans that were not repaid and the blue are loans that are paid. We can see the different relationships within the data. There does appear to be a moderate positive linear relationship between the `EXT_SOURCE_1` and the `DAYS_BIRTH` (or equivalently `YEARS_BIRTH`), indicating that this feature may take into account the age of the client. 
-
-# # Feature Engineering
-# 
-# Kaggle competitions are won by feature engineering: those win are those who can create the most useful features out of the data. (This is true for the most part as the winning models, at least for structured data, all tend to be variants on [gradient boosting](http://blog.kaggle.com/2017/01/23/a-kaggle-master-explains-gradient-boosting/)). This represents one of the patterns in machine learning: feature engineering has a greater return on investment than model building and hyperparameter tuning. [This is a great article on the subject)](https://www.featurelabs.com/blog/secret-to-data-science-success/). As Andrew Ng is fond of saying: "applied machine learning is basically feature engineering." 
-# 
-# While choosing the right model and optimal settings are important, the model can only learn from the data it is given. Making sure this data is as relevant to the task as possible is the job of the data scientist (and maybe some [automated tools](https://docs.featuretools.com/getting_started/install.html) to help us out).
-# 
-# Feature engineering refers to a geneal process and can involve both feature construction: adding new features from the existing data, and feature selection: choosing only the most important features or other methods of dimensionality reduction. There are many techniques we can use to both create features and select features.
-# 
-# We will do a lot of feature engineering when we start using the other data sources, but in this notebook we will try only two simple feature construction methods: 
-# 
-# * Polynomial features
-# * Domain knowledge features
-# 
-
-# ## Polynomial Features
-# 
-# One simple feature construction method is called [polynomial features](http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.PolynomialFeatures.html). In this method, we make features that are powers of existing features as well as interaction terms between existing features. For example, we can create variables `EXT_SOURCE_1^2` and `EXT_SOURCE_2^2` and also variables such as `EXT_SOURCE_1` x `EXT_SOURCE_2`, `EXT_SOURCE_1` x `EXT_SOURCE_2^2`, `EXT_SOURCE_1^2` x   `EXT_SOURCE_2^2`, and so on. These features that are a combination of multiple individual variables are called [interaction terms](https://en.wikipedia.org/wiki/Interaction_(statistics) because they  capture the interactions between variables. In other words, while two variables by themselves  may not have a strong influence on the target, combining them together into a single interaction variable might show a relationship with the target. [Interaction terms are commonly used in statistical models](https://www.theanalysisfactor.com/interpreting-interactions-in-regression/) to capture the effects of multiple variables, but I do not see them used as often in machine learning. Nonetheless, we can try out a few to see if they might help our model to predict whether or not a client will repay a loan. 
-# 
-# Jake VanderPlas writes about [polynomial features in his excellent book Python for Data Science](https://jakevdp.github.io/PythonDataScienceHandbook/05.04-feature-engineering.html) for those who want more information.
-# 
-# In the following code, we create polynomial features using the `EXT_SOURCE` variables and the `DAYS_BIRTH` variable. [Scikit-Learn has a useful class called `PolynomialFeatures`](http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.PolynomialFeatures.html) that creates the polynomials and the interaction terms up to a specified degree. We can use a degree of 3 to see the results (when we are creating polynomial features, we want to avoid using too high of a degree, both because the number of features scales exponentially with the degree, and because we can run into [problems with overfitting](http://scikit-learn.org/stable/auto_examples/model_selection/plot_underfitting_overfitting.html#sphx-glr-auto-examples-model-selection-plot-underfitting-overfitting-py)). 
-
-# In[ ]:
-
+pairs_plot(plot_data, target)
 
 # Make a new dataframe for polynomial features
 poly_features = df_train[['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3', 'DAYS_BIRTH', 'TARGET']]
@@ -349,19 +260,11 @@ poly_features = poly_transformer.transform(poly_features)
 poly_features_test = poly_transformer.transform(poly_features_test)
 print('Polynomial Features shape: ', poly_features.shape)
 
-# This creates a considerable number of new features. To get the names we have to use the polynomial features `get_feature_names` method.
-
-# In[ ]:
-
+#
 
 poly_transformer.get_feature_names(input_features=['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3', 'DAYS_BIRTH'])[:15]
 
-# There are 35 features with individual features raised to powers up to degree 3 and interaction terms. Now, we can see whether any of these new features are correlated with the target.
-
-# In[ ]:
-
-
-# Create a dataframe of the features 
+# Create a dataframe of the features
 poly_features = pd.DataFrame(poly_features,
                              columns=poly_transformer.get_feature_names(['EXT_SOURCE_1', 'EXT_SOURCE_2',
                                                                          'EXT_SOURCE_3', 'DAYS_BIRTH']))
@@ -441,24 +344,6 @@ app_test_domain['DAYS_EMPLOYED_PERCENT'] = app_test_domain['DAYS_EMPLOYED'] / ap
 
 # In[ ]:
 
-
-plt.figure(figsize=(12, 20))
-# iterate through the new features
-for i, feature in enumerate(
-        ['CREDIT_INCOME_PERCENT', 'ANNUITY_INCOME_PERCENT', 'CREDIT_TERM', 'DAYS_EMPLOYED_PERCENT']):
-    # create a new subplot for each source
-    plt.subplot(4, 1, i + 1)
-    # plot repaid loans
-    sns.kdeplot(app_train_domain.loc[app_train_domain['TARGET'] == 0, feature], label='target == 0')
-    # plot loans that were not repaid
-    sns.kdeplot(app_train_domain.loc[app_train_domain['TARGET'] == 1, feature], label='target == 1')
-
-    # Label the plots
-    plt.title('Distribution of %s by Target Value' % feature)
-    plt.xlabel('%s' % feature);
-    plt.ylabel('Density');
-
-plt.tight_layout(h_pad=2.5)
 
 # It's hard to say ahead of time if these new features will be useful. The only way to tell for sure is to try them out! 
 
@@ -1023,8 +908,6 @@ submission_domain.to_csv('baseline_lgb_domain_features.csv', index=False)
 # 分析特征
 feature_analyse(df_train, 'Pclass', 'Survived')
 
-
-
 # 特征选择
 # f_classif
 # mutual_info_classif
@@ -1146,7 +1029,7 @@ classifiers = [
     SVC(probability=True),
     DecisionTreeClassifier(),
     RandomForestClassifier(),
-	AdaBoostClassifier(),
+    AdaBoostClassifier(),
     GradientBoostingClassifier(),
     GaussianNB(),
     LinearDiscriminantAnalysis(),
@@ -1155,7 +1038,6 @@ classifiers = [
     SGDClassifier(max_iter=5),
     Perceptron(),
     XGBClassifier()]
-
 
 label = 'Survived'
 sss = StratifiedShuffleSplit(n_splits=10, test_size=0.1, random_state=0)
@@ -1197,7 +1079,6 @@ submission = pd.DataFrame({
 submission.to_csv('submission.csv', index=False)
 
 # kaggle competitions submit -c titanic -f titanic/submission.csv -m "SVC"
-
 
 
 # 模型微调-随机搜索
