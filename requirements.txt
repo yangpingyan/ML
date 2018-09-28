@@ -33,3 +33,4 @@ lightgbm
 flask
 flask-httpauth
 featuretools
+sqlalchemy
