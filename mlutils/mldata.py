@@ -16,7 +16,7 @@ def load_data_mibao_sql():
 
     # 查询语句，选出employee表中的所有数据
     sql = '''
-          select * from `admin`;
+          select * from `user`;
           '''
 
     # read_sql_query的两个参数: sql语句， 数据库连接
