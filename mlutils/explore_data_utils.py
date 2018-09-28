@@ -12,9 +12,6 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import time
 import os
-from sklearn.metrics import precision_recall_curve, precision_score, recall_score, f1_score
-from sklearn.metrics import roc_curve, roc_auc_score, confusion_matrix, accuracy_score
-
 
 
 
