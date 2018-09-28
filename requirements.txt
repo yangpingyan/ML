@@ -34,3 +34,4 @@ flask
 flask-httpauth
 featuretools
 sqlalchemy
+pymysql
