@@ -1,37 +1,5 @@
 # coding: utf-8
 
-# # 蜜宝大数据风控解决方案
-#
-# ---
-#
-# ## 会议主题：
-# 1. 审核大数据风控可行性。
-# 2. 工作计划。
-#
-#
-# ## 数据挖掘工作流程
-#
-# 目前大数据风控做的第一件事是数据挖掘工作，数据挖掘的工作流程分下面七步完成：
-#
-# 1. 目标或问题定义。
-# 2. 获取数据。
-# 3. 数据分析。
-# 4. 数据清洗、特征处理。
-# 5. 机器学习训练、预测。
-# 6. 结果评估和报告。
-# 7. 总结。
-#
-#
-# ## 目标或问题定义
-#
-# 当我们面对客户提交的租赁设备订单请求时，我们有2个核心问题需要解决，一个是这个客户信用如何，是不是来欺诈的；另一个是这个客户是信用良好客户，但我们不确定这个设备的价格是否超出他所能承受的范围。因此，我们的任务目标是两个：
-# 1. 客户分类。把客户分成审核通过和审核拒绝两类。
-# 2. 确定客户信用额度。
-# 接下来的数据挖掘工作是实现客户分类的。
-
-# ## 开始数据挖掘工作
-# 先做些代码初始化
-
 import csv
 import json
 import seaborn as sns
@@ -44,113 +12,6 @@ import os
 from sklearn.preprocessing import LabelEncoder
 # Suppress warnings
 import warnings
-
-
-def missing_values_table(df):
-    # Total missing values
-    mis_val = df.isnull().sum()
-
-    # Percentage of missing values
-    mis_val_percent = 100 * df.isnull().sum() / len(df)
-
-    # Make a table with the results
-    mis_val_table = pd.concat([mis_val, mis_val_percent], axis=1)
-
-    # Rename the columns
-    mis_val_table_ren_columns = mis_val_table.rename(
-        columns={0: 'Missing Values', 1: '% of Total Values'})
-
-    # Sort the table by percentage of missing descending
-    mis_val_table_ren_columns = mis_val_table_ren_columns[
-        mis_val_table_ren_columns.iloc[:, 1] != 0].sort_values(
-        '% of Total Values', ascending=False).round(1)
-
-    # Print some summary information
-    print("Your selected dataframe has " + str(df.shape[1]) + " columns.\n"
-                                                              "There are " + str(mis_val_table_ren_columns.shape[0]) +
-          " columns that have missing values.")
-
-    # Return the dataframe with missing information
-    return mis_val_table_ren_columns
-
-
-# 特征分析
-def feature_analyse(df, col, bins=10):
-    if df[col].dtype != 'O':
-        col_band = col + '_band'
-        df[col_band] = pd.cut(df[col], bins).astype(str)
-        col_ana = col_band
-    else:
-        col_ana = col
-
-    print(df[col_ana].describe())
-    print("-------------------------------------------")
-    pass_df = pd.DataFrame({'pass': df[df['check_result'] == 1][col_ana].value_counts()})
-    reject_df = pd.DataFrame({'reject': df[df['check_result'] == 0][col_ana].value_counts()})
-    all_df = pd.DataFrame({'all': df[col_ana].value_counts()})
-    analyse_df = all_df.merge(pass_df, how='outer', left_index=True, right_index=True)
-    analyse_df = analyse_df.merge(reject_df, how='outer', left_index=True, right_index=True)
-    analyse_df['pass_rate'] = analyse_df['pass'] / analyse_df['all']
-    analyse_df.sort_values(by='pass_rate', inplace=True, ascending=False)
-    analyse_df.fillna(value=0, inplace=True)
-    print(analyse_df)
-    plt.bar(analyse_df.index, analyse_df['pass_rate'])
-    plt.ylabel('Pass Rate')
-    plt.show()
-
-
-# KDE plot
-def feature_kdeplot(df, feature):
-    sns.kdeplot(df.loc[df['check_result'] == 0, feature], label='reject')
-    sns.kdeplot(df.loc[df['check_result'] == 1, feature], label='pass')
-
-    plt.xlabel(feature)
-    plt.ylabel('Density')
-    plt.title('Distribution of ' + feature)
-
-
-def plot_feature_importances(df):
-    """
-    Plot importances returned by a model. This can work with any measure of
-    feature importance provided that higher importance is better.
-
-    Args:
-        df (dataframe): feature importances. Must have the features in a column
-        called `features` and the importances in a column called `importance
-
-    Returns:
-        shows a plot of the 15 most importance features
-
-        df (dataframe): feature importances sorted by importance (highest to lowest)
-        with a column for normalized importance
-        """
-
-    # Sort features according to importance
-    df = df.sort_values('importance', ascending=False).reset_index()
-
-    # Normalize the feature importances to add up to one
-    df['importance_normalized'] = df['importance'] / df['importance'].sum()
-
-    # Make a horizontal bar chart of feature importances
-    plt.figure(figsize=(10, 6))
-    ax = plt.subplot()
-
-    # Need to reverse the index to plot most important on top
-    ax.barh(list(reversed(list(df.index[:15]))),
-            df['importance_normalized'].head(15),
-            align='center', edgecolor='k')
-
-    # Set the yticks and labels
-    ax.set_yticks(list(reversed(list(df.index[:15]))))
-    ax.set_yticklabels(df['feature'].head(15))
-
-    # Plot labeling
-    plt.xlabel('Normalized Importance');
-    plt.title('Feature Importances')
-    plt.show()
-
-    return df
-
 
 warnings.filterwarnings('ignore')
 # to make output display better
@@ -166,11 +27,12 @@ plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 csv.field_size_limit(100000000)
 
 # ## 获取数据
-# 数据已经从数据库中导出成csv文件，直接读取即可。后面数据的读取更改为从备份数据库直接读取，不仅可以保证数据的完整，还可以避免重名字段处理的麻烦。
-PROJECT_ROOT_DIR = os.getcwd()
-DATA_ID = "学校数据.csv"
-DATASETS_PATH = os.path.join(PROJECT_ROOT_DIR, "datasets", DATA_ID)
-df_alldata = pd.read_csv(DATASETS_PATH, encoding='utf-8', engine='python')
+if os.getcwd().find('mibao') == -1:
+    os.chdir('mibao')
+
+df_order_user = pd.read_csv("order_user.csv", encoding='utf-8', engine='python')
+
+len(df_order_user['user_id'].unique())
 print("初始数据量: {}".format(df_alldata.shape))
 
 # ## 数据简单计量分析

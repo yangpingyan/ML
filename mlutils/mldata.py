@@ -18,7 +18,7 @@ def load_data_mibao_sql():
 
     # 查询语句，选出employee表中的所有数据
     sql = '''
-          SELECT o.id,o.`create_time`,o.`order_number`,o.`merchant_id`,o.`user_id`,
+          SELECT o.id,o.`create_time`,o.`merchant_id`,o.`user_id`,
 o.`state`,o.`cost`,o.`discount`,o.`installment`,o.`pay_num`,o.`added_service`,o.`first_pay`,
 o.`channel`,o.`pay_type`,o.`bounds_example_id`,o.`bounds_example_no`,o.`goods_type`,o.`cash_pledge`,
 o.`cancel_reason`, o.`lease_term`,o.`commented`,o.`accident_insurance`,o.`type`,o.`freeze_money`,
@@ -36,3 +36,14 @@ LEFT JOIN `user` u ON o.`user_id` = u.`id`;
     df = pd.read_sql_query(sql, engine)
 
     return df
+
+def save_all_tables_mibao():
+    engine = create_engine('mysql+pymysql://root:qawsedrf@localhost:3306/mibao')
+    sql = ''' SELECT table_name FROM information_schema.`TABLES` WHERE table_schema="mibao"; '''
+    tables_df = pd.read_sql_query(sql, engine)
+    for table in tables_df['table_name'].values:
+        print(table)
+        sql = "SELECT * FROM `{}`;".format(table)
+        df = pd.read_sql_query(sql, engine)
+        df.to_csv("D:/datasets_ml/mibao/{}.csv".format(table), index=False)
+
