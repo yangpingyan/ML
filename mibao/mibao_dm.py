@@ -16,7 +16,7 @@ import warnings
 warnings.filterwarnings('ignore')
 # to make output display better
 pd.set_option('display.max_columns', 10)
-pd.set_option('display.max_rows', 1000)
+pd.set_option('display.max_rows', 10)
 pd.set_option('display.width', 2000)
 plt.rcParams['axes.labelsize'] = 14
 plt.rcParams['xtick.labelsize'] = 12
@@ -30,10 +30,24 @@ csv.field_size_limit(100000000)
 if os.getcwd().find('mibao') == -1:
     os.chdir('mibao')
 
-df_order_user = pd.read_csv("order_user.csv", encoding='utf-8', engine='python')
+ features_order = ['id',  'create_time ',  'merchant_id ',  'user_id ',
+  'state ',  'cost ',  'discount ',  'installment ',  'pay_num ',  'added_service ',  'first_pay ',
+  'channel ',  'pay_type ',  'bounds_example_id ',  'bounds_example_no ',  'goods_type ',  'cash_pledge ',
+  'cancel_reason ',   'lease_term ',  'commented ',  'accident_insurance ',  'type ',  'freeze_money ',
+  'sign_state ',  'ip ',  'releted ',  'order_type ',  'device_type ',
+  'source ',  'distance ',  'disposable_payment_discount ',
+  'disposable_payment_enabled ',  'lease_num ',  'merchant_store_id ',  'deposit ',
+  'hit_merchant_white_list ',  'fingerprint ',
+  'hit_goods_white_list ',  'credit_check_result ']
+df_order = pd.read_csv("datasets/order.csv", encoding='utf-8', engine='python')
+
+
 
 len(df_order_user['user_id'].unique())
 print("初始数据量: {}".format(df_alldata.shape))
+
+# Only numeric features
+features = features.select_dtypes('number')
 
 # ## 数据简单计量分析
 # 首5行数据

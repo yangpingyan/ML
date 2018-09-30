@@ -6,6 +6,9 @@
 import pandas as pd
 from sqlalchemy import create_engine
 
+# 初始化数据库连接，使用pymysql模块
+engine = create_engine('mysql+pymysql://root:qawsedrf@localhost:3306/mibao')
+datasets_path = "D:/datasets_ml/mibao/"
 
 def load_data_mibao():
     df = load_data_mibao_sql()
@@ -13,9 +16,6 @@ def load_data_mibao():
 
 
 def load_data_mibao_sql():
-    # 初始化数据库连接，使用pymysql模块
-    engine = create_engine('mysql+pymysql://root:qawsedrf@localhost:3306/mibao')
-
     # 查询语句，选出employee表中的所有数据
     sql = '''
           SELECT o.id,o.`create_time`,o.`merchant_id`,o.`user_id`,
@@ -37,13 +37,31 @@ LEFT JOIN `user` u ON o.`user_id` = u.`id`;
 
     return df
 
+
 def save_all_tables_mibao():
-    engine = create_engine('mysql+pymysql://root:qawsedrf@localhost:3306/mibao')
     sql = ''' SELECT table_name FROM information_schema.`TABLES` WHERE table_schema="mibao"; '''
     tables_df = pd.read_sql_query(sql, engine)
-    for table in tables_df['table_name'].values:
+    tables = tables_df['table_name'].values
+    for table in tables:
         print(table)
         sql = "SELECT * FROM `{}`;".format(table)
         df = pd.read_sql_query(sql, engine)
-        df.to_csv("D:/datasets_ml/mibao/{}.csv".format(table), index=False)
+        df.to_csv("{}{}.csv".format(datasets_path, table), index=False)
 
+
+# 找出有user_id的表，然后只保存该表中有产生订单的user_id的相关数据
+def read_save_infos_only_ordered():
+    sql = ''' SELECT table_name, column_name FROM information_schema.columns  WHERE table_schema='mibao' AND column_name='user_id'; '''
+    tables_df = pd.read_sql_query(sql, engine)
+    tables = tables_df['table_name'].values.tolist()
+    tables.remove('user_bonus')
+    df = pd.read_csv("{}order.csv".format(datasets_path))
+    user_ids = df['user_id'].unique()
+    df = pd.read_csv("{}user.csv".format(datasets_path))
+    df = df[df['id'].isin(user_ids)]
+    df.to_csv("D:/datasets_ml/{}.csv".format("user"), index=False)
+    for table in tables:
+        print(table)
+        df = pd.read_csv("{}{}.csv".format(datasets_path, table))
+        df = df[df['user_id'].isin(user_ids)]
+        df.to_csv("D:/datasets_ml/{}.csv".format(table), index=False)
