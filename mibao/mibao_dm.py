@@ -12,11 +12,12 @@ import os
 from sklearn.preprocessing import LabelEncoder
 # Suppress warnings
 import warnings
+from mlutils import *
 
 warnings.filterwarnings('ignore')
 # to make output display better
 pd.set_option('display.max_columns', 10)
-pd.set_option('display.max_rows', 10)
+pd.set_option('display.max_rows', 100)
 pd.set_option('display.width', 2000)
 plt.rcParams['axes.labelsize'] = 14
 plt.rcParams['xtick.labelsize'] = 12
@@ -26,61 +27,25 @@ plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 # read large csv file
 csv.field_size_limit(100000000)
 
+PROJECT_ID = 'mibao'
 # ## 获取数据
-if os.getcwd().find('mibao') == -1:
-    os.chdir('mibao')
-
- features_order = ['id',  'create_time ',  'merchant_id ',  'user_id ',
-  'state ',  'cost ',  'discount ',  'installment ',  'pay_num ',  'added_service ',  'first_pay ',
-  'channel ',  'pay_type ',  'bounds_example_id ',  'bounds_example_no ',  'goods_type ',  'cash_pledge ',
-  'cancel_reason ',   'lease_term ',  'commented ',  'accident_insurance ',  'type ',  'freeze_money ',
-  'sign_state ',  'ip ',  'releted ',  'order_type ',  'device_type ',
-  'source ',  'distance ',  'disposable_payment_discount ',
-  'disposable_payment_enabled ',  'lease_num ',  'merchant_store_id ',  'deposit ',
-  'hit_merchant_white_list ',  'fingerprint ',
-  'hit_goods_white_list ',  'credit_check_result ']
-df_order = pd.read_csv("datasets/order.csv", encoding='utf-8', engine='python')
-
-
-
-len(df_order_user['user_id'].unique())
-print("初始数据量: {}".format(df_alldata.shape))
-
-# Only numeric features
-features = features.select_dtypes('number')
-
+if os.getcwd().find(PROJECT_ID) == -1:
+    os.chdir(PROJECT_ID)
+datasets_path = os.getcwd() + '\\datasets\\'
+alldata_df = pd.read_csv("{}mibao.csv".format(datasets_path), encoding='utf-8', engine='python')
+print("初始数据量: {}".format(alldata_df.shape))
 # ## 数据简单计量分析
-# 首5行数据
-df_alldata.head()
-# 最后5行数据
-df_alldata.tail()
-# 所有特征值
-df_alldata.columns.values
-
+alldata_df
 # 特征选择
 # f_classif
 # mutual_info_classif
 
-
-# 我们并不需要所有的特征值，筛选出一些可能有用的特质值
-df = df_alldata.dropna(axis=1, how='all')
-features = ['create_time', 'goods_name', 'cost', 'discount', 'pay_num', 'added_service', 'first_pay', 'channel',
-            'pay_type', 'merchant_id', 'goods_type', 'lease_term', 'daily_rent', 'accident_insurance', 'type',
-            'freeze_money', 'ip', 'releted', 'order_type', 'source', 'disposable_payment_discount',
-            'disposable_payment_enabled', 'lease_num', 'original_daily_rent', 'deposit', 'zmxy_score', 'card_id',
-            'contact', 'phone', 'provice', 'city', 'regoin', 'receive_address', 'emergency_contact_name', 'phone_book',
-            'emergency_contact_phone', 'emergency_contact_relation', 'type.1', 'detail_json', 'price', 'old_level']
-result = ['state', 'cancel_reason', 'check_result', 'check_remark', 'result']
-df = df[result + features]
-print("筛选出所有可能有用特征后的数据量: {}".format(df.shape))
+df = alldata_df
 # 数据的起止时间段
 print("数据起止时间段：{} -- {}".format(df['create_time'].iloc[0], df['create_time'].iloc[-1]))
-# 订单审核结果分类
-df['check_result'].value_counts()
 # 订单状态
-df['state'].value_counts()
+df['TARGET'].value_counts()
 # 查看非空值个数， 数据类型
-df.info()
 df.dtypes.value_counts()
 # 缺失值比率
 missing_values_table(df)
@@ -90,6 +55,12 @@ df.select_dtypes('object').apply(pd.Series.nunique, axis=0)
 df.describe()
 # 类别描述
 df.describe(include='O')
+
+
+# 去掉审核中间态
+df = df[df['TARGET'] != 2]
+print("去掉审核中间态的数据量: {}".format(df.shape))
+
 # 开始清理数据
 print("初始数据量: {}".format(df.shape))
 # 丢弃身份证号为空的数据
@@ -265,6 +236,7 @@ DATASETS_PATH = os.path.join(PROJECT_ROOT_DIR, "datasets", DATA_ID)
 # Get Data
 df = pd.read_csv(DATASETS_PATH, encoding='utf-8', engine='python')
 print("ML初始数据量: {}".format(df.shape))
+
 
 x = df.drop(['check_result'], axis=1)
 y = df['check_result']

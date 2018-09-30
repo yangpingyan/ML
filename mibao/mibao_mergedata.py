@@ -21,8 +21,7 @@ if os.getcwd().find(PROJECT_ID) == -1:
     os.chdir(PROJECT_ID)
 datasets_path = os.getcwd() + '\\datasets\\'
 
-
-features_order = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'discount', 'installment',
+features_order = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment',
                   'pay_num', 'added_service', 'first_pay', 'channel', 'pay_type', 'bounds_example_id',
                   'bounds_example_no', 'goods_type', 'cash_pledge', 'cancel_reason', 'lease_term', 'commented',
                   'accident_insurance', 'type', 'freeze_money', 'sign_state', 'ip', 'releted', 'order_type',
@@ -33,13 +32,7 @@ order_df = pd.read_csv(datasets_path + "order.csv", encoding='utf-8', engine='py
 order_df = order_df[features_order]
 order_df.rename(columns={'id': 'order_id'}, inplace=True)
 
-features_jimi_order_check_result = ['check_result', 'check_remark', 'order_id']
-jimi_order_check_result_df = pd.read_csv(datasets_path + "jimi_order_check_result.csv")
-jimi_order_check_result_df = jimi_order_check_result_df[features_jimi_order_check_result]
-
-df = pd.merge(order_df, jimi_order_check_result_df, on='order_id', how='left')
-# df = df[df['check_result'].str.contains('SUCCESS|FAILURE', na=False)]
-
+df = order_df
 # 根据state生成TARGET，代表最终审核是否通过
 state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pay',
                 'artificial_credit_check_unpass_canceled', 'pending_artificial_credit_check', 'lease_finished',
@@ -57,6 +50,7 @@ unknown_state_values = ['pending_artificial_credit_check', 'pending_relet_check'
 state_values_newest = df['state'].unique().tolist()
 assert (operator.eq(state_values_newest, state_values))
 
+
 def state_mapping(value):
     if value in failure_state_values:
         return 0
@@ -67,19 +61,28 @@ def state_mapping(value):
 
     return 0
 
+
 df.insert(0, 'TARGET', df['state'].map(state_mapping))
-# 去掉审核中间态
-# df = df[df['TARGET'] != 2]
+
+
+df.drop(['order_id', 'state'], axis=1, inplace=True)
+df.to_csv(datasets_path + "mibao.csv", index=False)
+print("mibao.csv saved")
+
+
+'''
+features_jimi_order_check_result = ['check_result', 'check_remark', 'order_id']
+jimi_order_check_result_df = pd.read_csv(datasets_path + "jimi_order_check_result.csv")
+jimi_order_check_result_df = jimi_order_check_result_df[features_jimi_order_check_result]
+
+df = pd.merge(order_df, jimi_order_check_result_df, on='order_id', how='left')
+
+jimi_order_check_result_df['check_remark'].value_counts()
 
 features_merchant = ['check_result', 'check_remark', 'order_id']
 merchant_df = pd.read_csv(datasets_path + "merchant.csv")
 merchant_df = merchant_df[features_merchant]
 merchant_df['temp_risk_level'].value_counts()
-
-
-df.to_csv(datasets_path + "mibao.csv", index=False)
-
-
 
 
 df['check_result'].fillna(value='INIT')
@@ -90,3 +93,4 @@ df.shape
 df['state'].value_counts()
 missing_values_table(df)
 df['state'].unique()
+'''

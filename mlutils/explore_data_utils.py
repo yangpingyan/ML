@@ -90,6 +90,7 @@ def missing_values_table(df):
 
 # 特征分析
 def feature_analyse(df, feature, label='TARGET', bins=10):
+    print(df[feature].dtype)
     print(df[feature].value_counts())
     print("-------------------------------------------")
     if df[feature].dtype != 'object':
