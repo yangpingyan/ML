@@ -65,7 +65,7 @@ def state_mapping(value):
 df.insert(0, 'TARGET', df['state'].map(state_mapping))
 
 
-df.drop(['order_id', 'state'], axis=1, inplace=True)
+df.drop(['state'], axis=1, inplace=True)
 df.to_csv(datasets_path + "mibao.csv", index=False)
 print("mibao.csv saved")
 

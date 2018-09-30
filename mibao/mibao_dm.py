@@ -13,6 +13,7 @@ from sklearn.preprocessing import LabelEncoder
 # Suppress warnings
 import warnings
 from mlutils import *
+import featuretools as ft
 
 warnings.filterwarnings('ignore')
 # to make output display better
@@ -63,6 +64,15 @@ print("去掉审核中间态的数据量: {}".format(df.shape))
 
 # 开始清理数据
 print("初始数据量: {}".format(df.shape))
+# order_id =9085, 9098的crate_time 是错误的
+df = df[df['create_time'] >'2016']
+es = ft.EntitySet(id='date')
+date_df = df[['order_id', 'create_time']]
+es = es.entity_from_dataframe(entity_id='date', dataframe=df, index='order_id')
+feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1)
+print(feature_matrix)
+
+
 # 丢弃身份证号为空的数据
 df.dropna(subset=['card_id'], inplace=True)
 print("去除无身份证号后的数据量: {}".format(df.shape))
