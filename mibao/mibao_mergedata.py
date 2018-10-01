@@ -22,8 +22,8 @@ if os.getcwd().find(PROJECT_ID) == -1:
 datasets_path = os.getcwd() + '\\datasets\\'
 
 features_order = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment',
-                  'pay_num', 'added_service', 'first_pay', 'channel', 'pay_type', 'bounds_example_id',
-                  'bounds_example_no', 'goods_type', 'cash_pledge', 'cancel_reason', 'lease_term', 'commented',
+                  'pay_num', 'added_service', 'first_pay', 'pay_type', 'bounds_example_id',
+                  'bounds_example_no', 'goods_type', 'cash_pledge', 'lease_term', 'commented',
                   'accident_insurance', 'type', 'freeze_money', 'sign_state', 'ip', 'releted', 'order_type',
                   'device_type', 'source', 'distance', 'disposable_payment_discount', 'disposable_payment_enabled',
                   'lease_num', 'merchant_store_id', 'deposit', 'hit_merchant_white_list', 'fingerprint',

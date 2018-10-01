@@ -64,13 +64,23 @@ print("去掉审核中间态的数据量: {}".format(df.shape))
 
 # 开始清理数据
 print("初始数据量: {}".format(df.shape))
-# order_id =9085, 9098的crate_time 是错误的
+# 把createtime分成月日周。 order_id =9085, 9098的crate_time 是错误的
 df = df[df['create_time'] >'2016']
 es = ft.EntitySet(id='date')
-date_df = df[['order_id', 'create_time']]
 es = es.entity_from_dataframe(entity_id='date', dataframe=df, index='order_id')
-feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1)
-print(feature_matrix)
+default_trans_primitives = ["day", "month", "weekday"]
+feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1, trans_primitives=default_trans_primitives,)
+df = feature_matrix
+
+df['fingerprint']= df['fingerprint'].map(lambda x: 1 if isinstance(x, str) else 0)
+
+df.drop(['user_id', 'bounds_example_id', 'bounds_example_no'], axis=1, inplace=True)
+
+df.sort_values(by=['bounds_example_no'], inplace=True, axis=1)
+df['distance'].value_counts()
+df['distance'].fillna(value=0)
+feature_analyse(df, 'distance')
+missing_values_table(df)
 
 
 # 丢弃身份证号为空的数据
