@@ -73,14 +73,15 @@ feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_de
 df = feature_matrix
 
 df['fingerprint']= df['fingerprint'].map(lambda x: 1 if isinstance(x, str) else 0)
+df['installment'] = LabelEncoder().fit_transform(df['installment'])
+
 
 df.drop(['user_id', 'bounds_example_id', 'bounds_example_no'], axis=1, inplace=True)
 
 df.sort_values(by=['bounds_example_no'], inplace=True, axis=1)
 df['distance'].value_counts()
 df['distance'].fillna(value=0)
-feature_analyse(df, 'distance')
-missing_values_table(df)
+feature_analyse(df, 'pay_num')
 
 
 # 丢弃身份证号为空的数据
