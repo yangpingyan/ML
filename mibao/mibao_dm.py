@@ -57,7 +57,6 @@ df.describe()
 # 类别描述
 df.describe(include='O')
 
-
 # 去掉审核中间态
 df = df[df['TARGET'] != 2]
 print("去掉审核中间态的数据量: {}".format(df.shape))
@@ -65,24 +64,53 @@ print("去掉审核中间态的数据量: {}".format(df.shape))
 # 开始清理数据
 print("初始数据量: {}".format(df.shape))
 # 把createtime分成月日周。 order_id =9085, 9098的crate_time 是错误的
-df = df[df['create_time'] >'2016']
+df = df[df['create_time'] > '2016']
 es = ft.EntitySet(id='date')
 es = es.entity_from_dataframe(entity_id='date', dataframe=df, index='order_id')
-default_trans_primitives = ["day", "month", "weekday"]
-feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1, trans_primitives=default_trans_primitives,)
+default_trans_primitives = ["day", "month", "weekday", "hour"]
+feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1,
+                                      trans_primitives=default_trans_primitives, )
 df = feature_matrix
 
-df['fingerprint']= df['fingerprint'].map(lambda x: 1 if isinstance(x, str) else 0)
 df['installment'] = LabelEncoder().fit_transform(df['installment'])
+df['goods_type'] = LabelEncoder().fit_transform(df['goods_type'])
+df['commented'] = LabelEncoder().fit_transform(df['commented'])
+df['type'] = LabelEncoder().fit_transform(df['type'])
+df['order_type'] = LabelEncoder().fit_transform(df['order_type'])
+df['device_type'].fillna(value='NODATA', inplace=True)
+df['device_type'] = LabelEncoder().fit_transform(df['device_type'])
+df['source'] = LabelEncoder().fit_transform(df['source'])
+df['distance'] = np.where(df['distance'].isnull(), 0, 1)
+df['disposable_payment_enabled'] = LabelEncoder().fit_transform(df['disposable_payment_enabled'])
+df['deposit'] = np.where(df['deposit'] == 0, 0, 1)
+df['hit_merchant_white_list'] = LabelEncoder().fit_transform(df['hit_merchant_white_list'])
+df['fingerprint'] = np.where(df['fingerprint'].isnull(), 0, 1)
+df['bounds_example_id'].fillna(value=0, inplace=True)
 
 
-df.drop(['user_id', 'bounds_example_id', 'bounds_example_no'], axis=1, inplace=True)
+df.drop(['user_id', 'bounds_example_no', 'ip', 'merchant_store_id'], axis=1, inplace=True, errors='ignore')
+'''
+调试代码
+df.sort_values(by=['device_type'], inplace=True, axis=1)
+df['device_type'].value_counts()
+df['device_type'].fillna(value='NODATA', inplace=True)
+feature_analyse(df, 'bounds_example_id')
+df.columns.values
+missing_values_table(df)
+'''
+'''
+现有数据特征挖掘（与客户和订单信息相关的数据都可以拿来做特征）：
+1. 同盾和白骑士中的内容详情
+2. IP地址、收货地址、身份证地址、居住地址中的关联
+3. 优惠券，额外服务意外险
+4. 首付金额、每日租金
+5. 手机号前三位等
+6. 下单使用的设备，通过什么客户端下单（微信、支付宝、京东、网页）
+7. 是否有推荐人， 推荐人是否通过审核
+#. 租借个数
 
-df.sort_values(by=['bounds_example_no'], inplace=True, axis=1)
-df['distance'].value_counts()
-df['distance'].fillna(value=0)
-feature_analyse(df, 'pay_num')
-
+ b. 创造未被保存到数据库中的特征：年化利率,是否有2个手机号。
+'''
 
 # 丢弃身份证号为空的数据
 df.dropna(subset=['card_id'], inplace=True)
@@ -257,7 +285,6 @@ DATASETS_PATH = os.path.join(PROJECT_ROOT_DIR, "datasets", DATA_ID)
 # Get Data
 df = pd.read_csv(DATASETS_PATH, encoding='utf-8', engine='python')
 print("ML初始数据量: {}".format(df.shape))
-
 
 x = df.drop(['check_result'], axis=1)
 y = df['check_result']

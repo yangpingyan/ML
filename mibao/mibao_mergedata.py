@@ -21,13 +21,11 @@ if os.getcwd().find(PROJECT_ID) == -1:
     os.chdir(PROJECT_ID)
 datasets_path = os.getcwd() + '\\datasets\\'
 
-features_order = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment',
-                  'pay_num', 'added_service', 'first_pay', 'pay_type', 'bounds_example_id',
-                  'bounds_example_no', 'goods_type', 'cash_pledge', 'lease_term', 'commented',
-                  'accident_insurance', 'type', 'freeze_money', 'sign_state', 'ip', 'releted', 'order_type',
-                  'device_type', 'source', 'distance', 'disposable_payment_discount', 'disposable_payment_enabled',
-                  'lease_num', 'merchant_store_id', 'deposit', 'hit_merchant_white_list', 'fingerprint',
-                  'hit_goods_white_list', 'credit_check_result']
+features_order = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
+                  'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
+                  'commented', 'accident_insurance', 'type', 'ip', 'order_type', 'device_type', 'source', 'distance',
+                  'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
+                  'deposit', 'hit_merchant_white_list', 'fingerprint', ]
 order_df = pd.read_csv(datasets_path + "order.csv", encoding='utf-8', engine='python')
 order_df = order_df[features_order]
 order_df.rename(columns={'id': 'order_id'}, inplace=True)
@@ -64,11 +62,9 @@ def state_mapping(value):
 
 df.insert(0, 'TARGET', df['state'].map(state_mapping))
 
-
 df.drop(['state'], axis=1, inplace=True)
 df.to_csv(datasets_path + "mibao.csv", index=False)
 print("mibao.csv saved")
-
 
 '''
 features_jimi_order_check_result = ['check_result', 'check_remark', 'order_id']
