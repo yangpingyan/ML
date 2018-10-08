@@ -21,13 +21,11 @@ if os.getcwd().find(PROJECT_ID) == -1:
     os.chdir(PROJECT_ID)
 datasets_path = os.getcwd() + '\\datasets\\'
 
-features_order = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment',
-                  'pay_num', 'added_service', 'first_pay', 'pay_type', 'bounds_example_id',
-                  'bounds_example_no', 'goods_type', 'cash_pledge', 'lease_term', 'commented',
-                  'accident_insurance', 'type', 'freeze_money', 'sign_state', 'ip', 'releted', 'order_type',
-                  'device_type', 'source', 'distance', 'disposable_payment_discount', 'disposable_payment_enabled',
-                  'lease_num', 'merchant_store_id', 'deposit', 'hit_merchant_white_list', 'fingerprint',
-                  'hit_goods_white_list', 'credit_check_result']
+features_order = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
+                  'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
+                  'commented', 'accident_insurance', 'type', 'ip', 'order_type', 'device_type', 'source', 'distance',
+                  'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
+                  'deposit', 'hit_merchant_white_list', 'fingerprint', ]
 order_df = pd.read_csv(datasets_path + "order.csv", encoding='utf-8', engine='python')
 order_df = order_df[features_order]
 order_df.rename(columns={'id': 'order_id'}, inplace=True)
@@ -45,7 +43,7 @@ state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pa
 failure_state_values = ['user_canceled', 'artificial_credit_check_unpass_canceled', 'return_overdue', 'running_overdue',
                         'merchant_relet_check_unpass_canceled', 'system_credit_check_unpass_canceled',
                         'merchant_credit_check_unpass_canceled']
-unknown_state_values = ['pending_artificial_credit_check', 'pending_relet_check', 'pending_jimi_credit_check',
+pending_state_values = ['pending_artificial_credit_check', 'pending_relet_check', 'pending_jimi_credit_check',
                         'pending_relet_start']
 state_values_newest = df['state'].unique().tolist()
 assert (operator.eq(state_values_newest, state_values))
@@ -54,7 +52,7 @@ assert (operator.eq(state_values_newest, state_values))
 def state_mapping(value):
     if value in failure_state_values:
         return 0
-    elif value in unknown_state_values:
+    elif value in pending_state_values:
         return 2
     else:
         return 1
@@ -64,11 +62,9 @@ def state_mapping(value):
 
 df.insert(0, 'TARGET', df['state'].map(state_mapping))
 
-
 df.drop(['state'], axis=1, inplace=True)
 df.to_csv(datasets_path + "mibao.csv", index=False)
 print("mibao.csv saved")
-
 
 '''
 features_jimi_order_check_result = ['check_result', 'check_remark', 'order_id']

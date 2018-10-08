@@ -12,7 +12,9 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import time
 import os
-
+from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import precision_recall_curve, precision_score, recall_score, f1_score
+from sklearn.metrics import roc_curve, roc_auc_score
 
 
 # Function to calculate correlations with the target for a dataframe
@@ -52,6 +54,7 @@ def pairs_plot(plot_data, target='TARGET'):
     plt.legend()
     plt.show()
 
+
 # 保存所有模型得分
 def add_score(score_df, name, y_pred, y_test):
     score_df[name] = [accuracy_score(y_test, y_pred), precision_score(y_test, y_pred), recall_score(y_test, y_pred),
@@ -90,7 +93,6 @@ def missing_values_table(df):
 
 # 特征分析
 def feature_analyse(df, feature, label='TARGET', bins=10):
-
     print("dtype of {} is {}.".format(feature, df[feature].dtype))
     print(df[feature].notnull().value_counts())
     print("-------------------------------------------")
@@ -98,8 +100,9 @@ def feature_analyse(df, feature, label='TARGET', bins=10):
     print("-------------------------------------------")
     if df[feature].dtype != 'object':
         plt.figure()
-        plt.hist(df[feature])
-        feature_kdeplot(df, feature, label)
+        df_notnull = df[df[feature].notnull()]
+        plt.hist(df_notnull[feature])
+        feature_kdeplot(df_notnull, feature, label)
 
     if df[feature].dtype != 'object':
         feature_band = feature + 'Band'
@@ -127,6 +130,7 @@ def feature_analyse(df, feature, label='TARGET', bins=10):
         df.drop([feature_band], axis=1, errors='ignore', inplace=True)
     plt.show()
 
+
 # KDE plot
 def feature_kdeplot(df, feature, label='check_result'):
     plt.figure()
@@ -136,6 +140,7 @@ def feature_kdeplot(df, feature, label='check_result'):
     plt.ylabel('Density')
     plt.title('Distribution of ' + feature)
     plt.show()
+
 
 def plot_feature_importances(df):
     """
@@ -173,7 +178,7 @@ def plot_feature_importances(df):
     ax.set_yticklabels(df['feature'].head(15))
 
     # Plot labeling
-    plt.xlabel('Normalized Importance');
+    plt.xlabel('Normalized Importance')
     plt.title('Feature Importances')
     plt.show()
 

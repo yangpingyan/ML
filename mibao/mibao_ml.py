@@ -1,109 +1,4 @@
 # coding: utf-8
-
-import csv
-import json
-import seaborn as sns
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
-import time
-import os
-from sklearn.preprocessing import LabelEncoder
-# Suppress warnings
-import warnings
-from mlutils import *
-import featuretools as ft
-
-warnings.filterwarnings('ignore')
-# to make output display better
-pd.set_option('display.max_columns', 10)
-pd.set_option('display.max_rows', 100)
-pd.set_option('display.width', 2000)
-plt.rcParams['axes.labelsize'] = 14
-plt.rcParams['xtick.labelsize'] = 12
-plt.rcParams['ytick.labelsize'] = 12
-plt.rcParams['font.sans-serif'] = ['Simhei']  # 用来正常显示中文标签
-plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
-# read large csv file
-csv.field_size_limit(100000000)
-
-PROJECT_ID = 'mibao'
-# ## 获取数据
-if os.getcwd().find(PROJECT_ID) == -1:
-    os.chdir(PROJECT_ID)
-datasets_path = os.getcwd() + '\\datasets\\'
-alldata_df = pd.read_csv("{}mibao.csv".format(datasets_path), encoding='utf-8', engine='python')
-print("初始数据量: {}".format(alldata_df.shape))
-# ## 数据简单计量分析
-alldata_df
-# 特征选择
-# f_classif
-# mutual_info_classif
-
-df = alldata_df
-# 数据的起止时间段
-print("数据起止时间段：{} -- {}".format(df['create_time'].iloc[0], df['create_time'].iloc[-1]))
-# 订单状态
-df['TARGET'].value_counts()
-# 查看非空值个数， 数据类型
-df.dtypes.value_counts()
-# 缺失值比率
-missing_values_table(df)
-# 特征中不同值得个数
-df.select_dtypes('object').apply(pd.Series.nunique, axis=0)
-#  数值描述
-df.describe()
-# 类别描述
-df.describe(include='O')
-
-# 去掉审核中间态
-df = df[df['TARGET'] != 2]
-print("去掉审核中间态的数据量: {}".format(df.shape))
-
-# 开始清理数据
-print("初始数据量: {}".format(df.shape))
-# 把createtime分成月日周。 order_id =9085, 9098的crate_time 是错误的
-df = df[df['create_time'] > '2016']
-es = ft.EntitySet(id='date')
-es = es.entity_from_dataframe(entity_id='date', dataframe=df, index='order_id')
-default_trans_primitives = ["day", "month", "weekday", "hour"]
-feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1,
-                                      trans_primitives=default_trans_primitives, )
-df = feature_matrix
-
-df['installment'] = LabelEncoder().fit_transform(df['installment'])
-df['goods_type'] = LabelEncoder().fit_transform(df['goods_type'])
-df['commented'] = LabelEncoder().fit_transform(df['commented'])
-df['type'] = LabelEncoder().fit_transform(df['type'])
-df['order_type'] = LabelEncoder().fit_transform(df['order_type'])
-df['device_type'].fillna(value='NODATA', inplace=True)
-df['device_type'] = LabelEncoder().fit_transform(df['device_type'])
-df['source'] = LabelEncoder().fit_transform(df['source'])
-df['distance'] = np.where(df['distance'].isnull(), 0, 1)
-df['disposable_payment_enabled'] = LabelEncoder().fit_transform(df['disposable_payment_enabled'])
-df['deposit'] = np.where(df['deposit'] == 0, 0, 1)
-df['hit_merchant_white_list'] = LabelEncoder().fit_transform(df['hit_merchant_white_list'])
-df['fingerprint'] = np.where(df['fingerprint'].isnull(), 0, 1)
-df['bounds_example_id'].fillna(value=0, inplace=True)
-
-
-df.drop(['user_id', 'bounds_example_no', 'ip', 'merchant_store_id'], axis=1, inplace=True, errors='ignore')
-
-datasets_path
-print("保存的数据量: {}".format(df.shape))
-df.to_csv(datasets_path+"mibaodata_ml.csv", index=False)
-
-# 查看各特征关联度
-plt.figure(figsize=(14, 12))
-plt.title('Pearson Correlation of Features', y=1.05, size=15)
-sns.heatmap(df.astype(float).corr(), linewidths=0.1, vmax=1.0,
-            square=True, cmap=plt.cm.RdBu, linecolor='white', annot=True)
-plt.show()
-
-
-# ## 机器学习训练、预测
-
 import time
 import os
 import csv
@@ -148,7 +43,6 @@ y = df['check_result']
 ## Splitting the dataset into the Training set and Test set
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
 
-
 score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'runtime', 'confusion_matrix'])
 
 rnd_clf = RandomForestClassifier(random_state=0)
@@ -168,8 +62,6 @@ y_train_pred = xgb_clf.predict(x_train)
 add_score(score_df, xgb_clf.__class__.__name__ + '_Train', time.clock() - starttime, y_train_pred, y_train)
 
 print(score_df)
-
-
 
 '''
 调试代码
@@ -317,7 +209,6 @@ df = df[features]
 # 类别特征全部转换成数字
 for feature in features:
     df[feature] = LabelEncoder().fit_transform(df[feature])
-
 
 # ## 评估结果
 # accuracy： 97.5%  --- 预测正确的个数占样本总数的比率
