@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.colors import ListedColormap
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.linear_model import LogisticRegression, Perceptron
@@ -14,8 +15,8 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import RandomForestClassifier, VotingClassifier
-from sklearn.model_selection import cross_val_predict, train_test_split
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier, AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.model_selection import cross_val_predict, train_test_split, RandomizedSearchCV
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.metrics import precision_recall_curve, precision_score, recall_score, f1_score
@@ -24,9 +25,7 @@ from sklearn.model_selection import KFold
 from xgboost import XGBClassifier
 import lightgbm as lgb
 from mlutils import *
-
-N_FOLDS = 5
-MAX_EVALS = 5
+import random
 
 # to make output display better
 pd.set_option('display.max_columns', 50)
@@ -50,43 +49,176 @@ x = df.drop(['TARGET'], axis=1)
 y = df['TARGET']
 ## Splitting the dataset into the Training set and Test set
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1, random_state=88)
+
+classifiers = [
+    lgb.LGBMClassifier(),
+    RandomForestClassifier(),
+    KNeighborsClassifier(3),
+    # SVC(probability=True),
+    DecisionTreeClassifier(),
+    AdaBoostClassifier(),
+    GradientBoostingClassifier(),
+    GaussianNB(),
+    LinearDiscriminantAnalysis(),
+    QuadraticDiscriminantAnalysis(),
+    LogisticRegression(),
+    SGDClassifier(max_iter=5),
+    Perceptron(),
+    XGBClassifier()]
+
 score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
+for model in classifiers:
+    print("Running ", model.__class__.__name__)
+    model.fit(x_train, y_train)
+    y_pred = model.predict(x_test)
+    add_score(score_df, model.__class__.__name__, y_pred, y_test)
 
-rnd_clf = RandomForestClassifier(random_state=0)
-rnd_clf.fit(x_train, y_train)
-y_pred = rnd_clf.predict(x_test)
-add_score(score_df, rnd_clf.__class__.__name__, y_pred, y_test)
-
-xgb_clf = XGBClassifier(random_state=0)
-xgb_clf.fit(x_train, y_train)
-y_pred = xgb_clf.predict(x_test)
-add_score(score_df, xgb_clf.__class__.__name__, y_pred, y_test)
+    break
 
 print(score_df)
+
+# ## LightGBM with cross validation
+def lgb_objective(hyperparameters, iteration):
+    """Objective function for grid and random search. Returns
+       the cross validation score from a set of hyperparameters."""
+
+    # Number of estimators will be found using early stopping
+    if 'n_estimators' in hyperparameters.keys():
+        del hyperparameters['n_estimators']
+
+    # Perform n_folds cross validation
+    cv_results = lgb.cv(hyperparameters, train_set, num_boost_round=10000, nfold=5,
+                        early_stopping_rounds=100, metrics='auc', seed=42)
+
+    # results to retun
+    score = cv_results['auc-mean'][-1]
+    estimators = len(cv_results['auc-mean'])
+    hyperparameters['n_estimators'] = estimators
+
+    return [score, hyperparameters, iteration]
+
 
 # Create a training and testing dataset
 train_set = lgb.Dataset(data=x_train, label=y_train)
 test_set = lgb.Dataset(data=x_test, label=y_test)
 # Get default hyperparameters
-model = lgb.LGBMClassifier()
-default_params = model.get_params()
-# Remove the number of estimators because we set this to 10000 in the cv call
-del default_params['n_estimators']
-
-# Cross validation with early stopping
-cv_results = lgb.cv(default_params, train_set, num_boost_round=10000, early_stopping_rounds=100, metrics='auc',
-                    nfold=N_FOLDS, seed=42)
-print('The maximum validation ROC AUC was: {:.5f} with a standard deviation of {:.5f}.'.format(cv_results['auc-mean'][-1], cv_results['auc-stdv'][-1]))
-print('The optimal number of boosting rounds (estimators) was {}.'.format(len(cv_results['auc-mean'])))
-
-# Optimal number of esimators found in cv
-model.n_estimators = len(cv_results['auc-mean'])
+lgb_clf = lgb.LGBMClassifier()
+default_params = lgb_clf.get_params()
+score, params_best, iteration = lgb_objective(default_params, 1)
+print('The cross-validation ROC AUC was {:.5f}.'.format(score))
 
 # Train and make predicions with model
-model.fit(x_train, y_train)
-y_pred = model.predict(x_test)
-add_score(score_df, model.__class__.__name__, y_pred, y_test)
+lgb_clf = lgb.LGBMClassifier(**params_best)
+lgb_clf.fit(x_train, y_train)
+y_pred = lgb_clf.predict(x_test)
+add_score(score_df, lgb_clf.__class__.__name__+'_cv', y_pred, y_test)
 
+# LightBGM with Random Search
+param_grid = {
+    'boosting_type': ['gbdt', 'goss', 'dart'],
+    'n_estimators': range(1, 300),
+    'num_leaves': list(range(20, 150)),
+    'learning_rate': list(np.logspace(np.log10(0.005), np.log10(0.5), base=10, num=1000)),
+    'subsample_for_bin': list(range(20000, 300000, 20000)),
+    'min_child_samples': list(range(20, 500, 5)),
+    'reg_alpha': list(np.linspace(0, 1)),
+    'reg_lambda': list(np.linspace(0, 1)),
+    'colsample_bytree': list(np.linspace(0.6, 1, 10)),
+    'subsample': list(np.linspace(0.5, 1, 100)),
+    'is_unbalance': [True, False]
+}
+param_grid = {
+    'boosting_type': ['gbdt', 'goss', 'dart'],
+    'n_estimators': range(1, 300),
+    'num_leaves': list(range(20, 150)),
+    'learning_rate': list(np.logspace(np.log10(0.005), np.log10(0.5), base=10, num=1000)),
+    'subsample_for_bin': list(range(20000, 300000, 20000)),
+}
+
+lgb_clf = lgb.LGBMClassifier()
+rnd_search = RandomizedSearchCV(lgb_clf, param_distributions=param_grid, n_iter=5, cv=5, scoring='roc_auc', n_jobs=-1)
+rnd_search.fit(x_train, y_train)
+rnd_search.best_params_
+rnd_search.best_estimator_
+rnd_search.best_score_
+cvres = rnd_search.cv_results_
+
+feature_importances = rnd_search.best_estimator_.feature_importances_
+importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
+importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
+print(importance_df)
+
+# Train and make predicions with model
+lgb_clf = rnd_search.best_estimator_
+lgb_clf.fit(x_train, y_train)
+y_pred = lgb_clf.predict(x_test)
+add_score(score_df, lgb_clf.__class__.__name__ + '_random_search', y_pred, y_test)
+
+
+def lgb_random_search(max_evals=5):
+    """Random search for hyperparameter optimization"""
+
+    # Hyperparameter grid
+    param_grid = {
+        'boosting_type': ['gbdt', 'goss', 'dart'],
+        'num_leaves': list(range(20, 150)),
+        'learning_rate': list(np.logspace(np.log10(0.005), np.log10(0.5), base=10, num=1000)),
+        'subsample_for_bin': list(range(20000, 300000, 20000)),
+        'min_child_samples': list(range(20, 500, 5)),
+        'reg_alpha': list(np.linspace(0, 1)),
+        'reg_lambda': list(np.linspace(0, 1)),
+        'colsample_bytree': list(np.linspace(0.6, 1, 10)),
+        'subsample': list(np.linspace(0.5, 1, 100)),
+        'is_unbalance': [True, False]
+    }
+
+    # Dataframe for results
+    results = pd.DataFrame(columns=['score', 'params', 'iteration'], index=list(range(max_evals)))
+    default_params = lgb.LGBMClassifier().get_params()
+    default_params['verbose'] = 0
+
+    # Keep searching until reach max evaluations
+    for i in range(max_evals):
+        print(i, '--------------------------------------------------')
+        # Choose random hyperparameters
+        hyperparameters = {k: random.sample(v, 1)[0] for k, v in param_grid.items()}
+        hyperparameters['subsample'] = 1.0 if hyperparameters['boosting_type'] == 'goss' else hyperparameters[
+            'subsample']
+        params = default_params.copy()
+
+        params.update(hyperparameters)
+        # Evaluate randomly selected hyperparameters
+        eval_results = lgb_objective(params, i)
+
+        results.loc[i, :] = eval_results
+        print(results)
+
+    # Sort with best score on top
+    results.sort_values('score', ascending=False, inplace=True)
+    results.reset_index(inplace=True)
+    return results
+
+
+random_results = lgb_random_search()
+
+print('The best validation score was {:.5f}'.format(random_results.loc[0, 'score']))
+print('\nThe best hyperparameters were:')
+
+import pprint
+
+pprint.pprint(random_results.loc[0, 'params'])
+
+# Get the best parameters
+random_search_params = random_results.loc[0, 'params']
+
+# Create, train, test model
+model = lgb.LGBMClassifier(**random_search_params, random_state=42)
+model.fit(train_features, train_labels)
+
+preds = model.predict_proba(test_features)[:, 1]
+
+print('The best model from random search scores {:.5f} ROC AUC on the test set.'.format(
+    roc_auc_score(test_labels, preds)))
 
 '''
 调试代码
