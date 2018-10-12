@@ -80,8 +80,11 @@ df.drop(['id'], axis=1, inplace=True)
 bargain_help_df = pd.read_csv(datasets_path + "bargain_help.csv")
 df['have_bargain_help'] = np.where(df['user_id'].isin(bargain_help_df['user_id'].values), 1, 0)
 
-# read faceid data
-
+# read face_id data
+face_id_df = pd.read_csv(datasets_path + "face_id.csv")
+df = pd.merge(df, face_id_df, on='user_id', how='left')
+# face_id_liveness_df = pd.read_csv(datasets_path + "face_id_liveness.csv")
+# df = pd.merge(df, face_id_liveness_df, on='user_id', how='left')
 
 
 
@@ -91,8 +94,6 @@ print("mibao.csv saved")
 
 
 '''
-
-
 df.columns.values
 feature = 'tag'
 df[feature].value_counts()

@@ -51,7 +51,7 @@ y = df['TARGET']
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1, random_state=88)
 
 classifiers = [
-    lgb.LGBMClassifier(),
+    lgb.LGBMClassifier(), #0.880， 0.579
     RandomForestClassifier(),
     KNeighborsClassifier(3),
     # SVC(probability=True),

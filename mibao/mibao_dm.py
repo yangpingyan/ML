@@ -86,8 +86,18 @@ df['deposit'] = np.where(df['deposit'] == 0, 0, 1)
 df['hit_merchant_white_list'] = LabelEncoder().fit_transform(df['hit_merchant_white_list'])
 df['fingerprint'] = np.where(df['fingerprint'].isnull(), 0, 1)
 df['bounds_example_id'].fillna(value=0, inplace=True)
+df['tag'] = np.where(df['tag'].str.match('new'), 1, 0)
 
+'''
+df.columns.values
+feature = 'have_bargain_help'
+df[feature].value_counts()
+feature_analyse(df, feature)
+df[df[feature].isnull()].sort_values(by='state').shape
 
+missing_values_table(df)
+df[feature].unique()
+'''
 df.drop(['user_id', 'bounds_example_no', 'ip', 'merchant_store_id'], axis=1, inplace=True, errors='ignore')
 
 datasets_path
@@ -100,74 +110,6 @@ plt.title('Pearson Correlation of Features', y=1.05, size=15)
 sns.heatmap(df.astype(float).corr(), linewidths=0.1, vmax=1.0,
             square=True, cmap=plt.cm.RdBu, linecolor='white', annot=True)
 plt.show()
-
-
-# ## 机器学习训练、预测
-
-import time
-import os
-import csv
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
-from matplotlib.colors import ListedColormap
-from sklearn.naive_bayes import GaussianNB
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.linear_model import LogisticRegression, Perceptron
-from sklearn.linear_model import SGDClassifier
-from sklearn.svm import SVC, LinearSVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import RandomForestClassifier, VotingClassifier
-from sklearn.model_selection import cross_val_predict, train_test_split
-from sklearn.model_selection import cross_val_score
-from sklearn.metrics import confusion_matrix, accuracy_score
-from sklearn.metrics import precision_recall_curve, precision_score, recall_score, f1_score
-from sklearn.metrics import roc_curve, roc_auc_score
-from sklearn.model_selection import KFold
-from xgboost import XGBClassifier
-
-# to make output display better
-pd.set_option('display.max_columns', 50)
-pd.set_option('display.max_rows', 20)
-pd.set_option('display.width', 1000)
-plt.rcParams['axes.labelsize'] = 14
-plt.rcParams['xtick.labelsize'] = 12
-plt.rcParams['ytick.labelsize'] = 12
-# read large csv file
-PROJECT_ROOT_DIR = os.getcwd()
-DATA_ID = "mibaodata_ml.csv"
-DATASETS_PATH = os.path.join(PROJECT_ROOT_DIR, "datasets", DATA_ID)
-# Get Data
-df = pd.read_csv(DATASETS_PATH, encoding='utf-8', engine='python')
-print("ML初始数据量: {}".format(df.shape))
-
-x = df.drop(['check_result'], axis=1)
-y = df['check_result']
-## Splitting the dataset into the Training set and Test set
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
-
-
-score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'runtime', 'confusion_matrix'])
-
-rnd_clf = RandomForestClassifier(random_state=0)
-starttime = time.clock()
-rnd_clf.fit(x_train, y_train)
-y_pred = rnd_clf.predict(x_test)
-add_score(score_df, rnd_clf.__class__.__name__, time.clock() - starttime, y_pred, y_test)
-y_train_pred = rnd_clf.predict(x_train)
-add_score(score_df, rnd_clf.__class__.__name__ + '_Train', time.clock() - starttime, y_train_pred, y_train)
-
-xgb_clf = XGBClassifier(random_state=0)
-starttime = time.clock()
-xgb_clf.fit(x_train, y_train)
-y_pred = xgb_clf.predict(x_test)
-add_score(score_df, xgb_clf.__class__.__name__, time.clock() - starttime, y_pred, y_test)
-y_train_pred = xgb_clf.predict(x_train)
-add_score(score_df, xgb_clf.__class__.__name__ + '_Train', time.clock() - starttime, y_train_pred, y_train)
-
-print(score_df)
 
 
 
