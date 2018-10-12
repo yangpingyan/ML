@@ -98,11 +98,11 @@ def feature_analyse(df, feature, label='TARGET', bins=10):
     print("-------------------------------------------")
     print(df[feature].value_counts())
     print("-------------------------------------------")
-    if df[feature].dtype != 'object':
-        plt.figure()
-        df_notnull = df[df[feature].notnull()]
-        plt.hist(df_notnull[feature])
-        feature_kdeplot(df_notnull, feature, label)
+    # if df[feature].dtype != 'object':
+    #     plt.figure()
+    #     df_notnull = df[df[feature].notnull()]
+    #     plt.hist(df_notnull[feature])
+    #     feature_kdeplot(df_notnull, feature, label)
 
     if df[feature].dtype != 'object':
         feature_band = feature + 'Band'

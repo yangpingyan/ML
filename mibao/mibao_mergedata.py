@@ -1,8 +1,9 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 # coding: utf-8
-# @Time : 2018/9/30 13:39 
+# @Time : 2018/9/30 13:39
 # @Author : yangpingyan@gmail.com
 
+import numpy as np
 import pandas as pd
 import warnings
 import os
@@ -61,32 +62,44 @@ def state_mapping(value):
 
 
 df.insert(0, 'TARGET', df['state'].map(state_mapping))
-
 df.drop(['state'], axis=1, inplace=True)
+
+# read user data
+user_df = pd.read_csv(datasets_path + "user.csv")
+user_df['head_image_url'].fillna(value=0, inplace=True)
+user_df['have_head_image'] = user_df['head_image_url'].map(lambda x: 0 if x == ("headImg/20171126/ll15fap1o16y9zfr0ggl3g8xptgo80k9jbnp591d.png") or x == 0 else 1)
+user_df['recommend_code'].fillna(value=0, inplace=True)
+user_df['recommend_code'] = user_df['recommend_code'].map(lambda x: 0 if x == 0 else 1)
+user_df['share_callback'] = user_df['recommend_code'].map(lambda x: 1 if x > 0 else 0)
+features_user = ['id', 'have_head_image', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag']
+user_df = user_df[features_user]
+df = pd.merge(order_df, user_df, left_on='user_id', right_on='id', how='left')
+df.drop(['id'], axis=1, inplace=True)
+
+# read bargain_help data
+bargain_help_df = pd.read_csv(datasets_path + "bargain_help.csv")
+df['have_bargain_help'] = np.where(df['user_id'].isin(bargain_help_df['user_id'].values), 1, 0)
+
+# read faceid data
+
+
+
+
 df.to_csv(datasets_path + "mibao.csv", index=False)
 print("mibao.csv saved")
 
+
+
 '''
-features_jimi_order_check_result = ['check_result', 'check_remark', 'order_id']
-jimi_order_check_result_df = pd.read_csv(datasets_path + "jimi_order_check_result.csv")
-jimi_order_check_result_df = jimi_order_check_result_df[features_jimi_order_check_result]
-
-df = pd.merge(order_df, jimi_order_check_result_df, on='order_id', how='left')
-
-jimi_order_check_result_df['check_remark'].value_counts()
-
-features_merchant = ['check_result', 'check_remark', 'order_id']
-merchant_df = pd.read_csv(datasets_path + "merchant.csv")
-merchant_df = merchant_df[features_merchant]
-merchant_df['temp_risk_level'].value_counts()
 
 
-df['check_result'].fillna(value='INIT')
-feature_analyse(df, 'check_result')
-df[df['check_result'].isnull()].sort_values(by='state').shape
-df['credit_check_result'].value_counts()
-df.shape
-df['state'].value_counts()
+df.columns.values
+feature = 'tag'
+df[feature].value_counts()
+df[feature].fillna(value='INIT', inplace=True)
+feature_analyse(df, feature)
+df[df[feature].isnull()].sort_values(by='state').shape
+
 missing_values_table(df)
-df['state'].unique()
+df[feature].unique()
 '''
