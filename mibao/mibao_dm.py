@@ -19,7 +19,7 @@ import operator
 warnings.filterwarnings('ignore')
 # to make output display better
 pd.set_option('display.max_columns', 10)
-pd.set_option('display.max_rows', 100)
+pd.set_option('display.max_rows', 10)
 pd.set_option('display.width', 2000)
 plt.rcParams['axes.labelsize'] = 14
 plt.rcParams['xtick.labelsize'] = 12
@@ -130,10 +130,50 @@ all_data_df['face_live_check'] = LabelEncoder().fit_transform(all_data_df['face_
 
 
 # 读取并处理表 order_express
-# 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address',
+# 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address', 'live_address'
 df = pd.read_csv(datasets_path + "order_express.csv")
-df = df[['order_id', 'zmxy_score', 'card_id', 'phone', 'company', 'live_address', 'mode', ]]
-df = pd.merge(df, df, on='order_id', how='left')
+df = df[['order_id', 'zmxy_score', 'card_id', 'phone', 'company', ]]
+# 处理芝麻信用分 '>600' 更改成600
+zmf = [0] * len(df)
+xbf = [0] * len(df)
+for row, detail in enumerate(df['zmxy_score']):
+    # print(row, detail)
+    if isinstance(detail, str):
+        if '/' in detail:
+            score = detail.split('/')
+            xbf[row] = 0 if score[0] == '' else (float(score[0]))
+            zmf[row] = 0 if score[1] == '' else (float(score[1]))
+        # print(score, row)
+        elif '>' in detail:
+            zmf[row] = 600
+        else:
+            score = float(detail)
+            if score <= 200:
+                xbf[row] = (score)
+            else:
+                zmf[row] = (score)
+
+df['zmf'] = zmf
+df['xbf'] = xbf
+zmf_most = df['zmf'][df['zmf']>0].value_counts().index[0]
+xbf_most = df['xbf'][df['xbf']>0].value_counts().index[0]
+df['zmf'][df['zmf'] == 0] = zmf_most
+df['xbf'][df['xbf'] == 0] = xbf_most
+# 根据身份证号增加性别和年龄 年龄的计算需根据订单创建日期计算
+df['age'] = df['card_id'].map(lambda x: 2018 - int(x[6:10]))
+df['sex'] = df['card_id'].map(lambda x: int(x[-2]) % 2)
+df['phone'] = df['phone'].astype(str)
+df['phone'][df['phone'].str.len() != 11] = '0'
+df['phone'] = df['phone'].str.slice(0,3)
+df.drop(labels=['card_id','zmxy_score' ], axis=1, inplace=True, errors='ignore')
+all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
+all_data_df['company'] = np.where(all_data_df['company'].isnull(), 0, 1)
+
+# 读取并处理表 order_express
+# 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address', 'live_address'
+df = pd.read_csv(datasets_path + ".csv")
+df = df[[ ]]
+
 
 '''
 feature = 'zmxyScore'
@@ -261,38 +301,6 @@ df['result'][df['result'].str.match('ACCEPT')] = 'PASS'
 df['emergency_contact_phone'][df['emergency_contact_phone'].notnull()] = 1
 df['emergency_contact_phone'][df['emergency_contact_phone'].isnull()] = 0
 
-# 处理芝麻信用分 '>600' 更改成600
-row = 0
-zmf = [0] * len(df)
-xbf = [0] * len(df)
-for x in df['zmxy_score']:
-    # print(x, row)
-    if
-isinstance(x, str):
-if '/' in x:
-    score = x.split('/')
-xbf[row] = 0 if score[0] == '' else (float(score[0]))
-zmf[row] = 0 if score[1] == '' else (float(score[1]))
-# print(score, row)
-elif '>' in x:
-zmf[row] = 600
-else:
-score = float(x)
-if score <= 200:
-    xbf[row] = (score)
-else:
-    zmf[row] = (score)
-
-row += 1
-
-df['zmf_score'] = zmf
-df['xbf_score'] = xbf
-df['zmf_score'][df['zmf_score'] == 0] = 600
-df['xbf_score'][df['xbf_score'] == 0] = 87.6
-
-# 根据身份证号增加性别和年龄 年龄的计算需根据订单创建日期计算
-df['age'] = df['card_id'].map(lambda x: 2018 - int(x[6:10]))
-df['sex'] = df['card_id'].map(lambda x: int(x[-2]) % 2)
 
 features_cat = ['check_result', 'result', 'pay_num', 'channel', 'goods_type', 'lease_term', 'type', 'order_type',
                 'source', 'phone_book', 'emergency_contact_phone', 'old_level', 'create_hour', 'sex', ]
