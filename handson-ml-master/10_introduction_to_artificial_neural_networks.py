@@ -1,4 +1,4 @@
-
+tf.name_scope('eval')
 # coding: utf-8
 
 # **Chapter 10 – Introduction to Artificial Neural Networks**

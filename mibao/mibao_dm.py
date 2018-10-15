@@ -14,6 +14,7 @@ from sklearn.preprocessing import LabelEncoder
 import warnings
 from mlutils import *
 import featuretools as ft
+import operator
 
 warnings.filterwarnings('ignore')
 # to make output display better
@@ -33,46 +34,44 @@ PROJECT_ID = 'mibao'
 if os.getcwd().find(PROJECT_ID) == -1:
     os.chdir(PROJECT_ID)
 datasets_path = os.getcwd() + '\\datasets\\'
-alldata_df = pd.read_csv("{}mibao.csv".format(datasets_path), encoding='utf-8', engine='python')
-print("初始数据量: {}".format(alldata_df.shape))
-# ## 数据简单计量分析
-alldata_df
-# 特征选择
-# f_classif
-# mutual_info_classif
 
-df = alldata_df
-# 数据的起止时间段
-print("数据起止时间段：{} -- {}".format(df['create_time'].iloc[0], df['create_time'].iloc[-1]))
-# 订单状态
-df['TARGET'].value_counts()
-# 查看非空值个数， 数据类型
-df.dtypes.value_counts()
-# 缺失值比率
-missing_values_table(df)
-# 特征中不同值得个数
-df.select_dtypes('object').apply(pd.Series.nunique, axis=0)
-#  数值描述
-df.describe()
-# 类别描述
-df.describe(include='O')
+# 读取并处理主表order, 所有表合并成all_data_df
+# 未处理feature: ip,
+features_order = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
+                  'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
+                  'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
+                  'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
+                  'deposit', 'hit_merchant_white_list', 'fingerprint', ]
 
-# 去掉审核中间态
-df = df[df['TARGET'] != 2]
-print("去掉审核中间态的数据量: {}".format(df.shape))
+df = pd.read_csv(datasets_path + "order.csv", encoding='utf-8', engine='python')
+df = df[features_order]
+df.rename(columns={'id': 'order_id'}, inplace=True)
 
-# 开始清理数据
-print("初始数据量: {}".format(df.shape))
-# 把createtime分成月日周。 order_id =9085, 9098的crate_time 是错误的
-df = df[df['create_time'] > '2016']
-es = ft.EntitySet(id='date')
-es = es.entity_from_dataframe(entity_id='date', dataframe=df, index='order_id')
-default_trans_primitives = ["day", "month", "weekday", "hour"]
-feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1,
-                                      trans_primitives=default_trans_primitives, )
-df = feature_matrix
+# 根据state生成TARGET，代表最终审核是否通过
+state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pay',
+                'artificial_credit_check_unpass_canceled', 'pending_artificial_credit_check', 'lease_finished',
+                'return_overdue', 'order_payment_overtime_canceled', 'pending_send_goods',
+                'merchant_not_yet_send_canceled', 'running_overdue', 'buyout_finished', 'pending_user_compensate',
+                'repairing', 'express_rejection_canceled', 'pending_return', 'returning', 'return_goods',
+                'pending_relet_check', 'returned_received', 'relet_finished', 'merchant_relet_check_unpass_canceled',
+                'system_credit_check_unpass_canceled', 'pending_jimi_credit_check', 'pending_relet_start',
+                'pending_refund_deposit', 'merchant_credit_check_unpass_canceled']
+failure_state_values = ['user_canceled', 'artificial_credit_check_unpass_canceled', 'return_overdue', 'running_overdue',
+                        'merchant_relet_check_unpass_canceled', 'system_credit_check_unpass_canceled',
+                        'merchant_credit_check_unpass_canceled']
+pending_state_values = ['pending_artificial_credit_check', 'pending_relet_check', 'pending_jimi_credit_check',
+                        'pending_relet_start']
+state_values_newest = df['state'].unique().tolist()
+# 若state字段有新的状态产生， 抛出异常
+assert (operator.eq(state_values_newest, state_values))
 
+df = df[df['state'].isin(pending_state_values) == False]
+df.insert(0, 'target', np.where(df['state'].isin(failure_state_values), 0, 1))
+
+# 开始处理特征
 df['installment'] = LabelEncoder().fit_transform(df['installment'])
+df['bounds_example_id'] = np.where(df['bounds_example_id'].isnull(), 0, 1)
+df['bounds_example_no'] = np.where(df['bounds_example_no'].isnull(), 0, 1)
 df['goods_type'] = LabelEncoder().fit_transform(df['goods_type'])
 df['commented'] = LabelEncoder().fit_transform(df['commented'])
 df['type'] = LabelEncoder().fit_transform(df['type'])
@@ -82,12 +81,98 @@ df['device_type'] = LabelEncoder().fit_transform(df['device_type'])
 df['source'] = LabelEncoder().fit_transform(df['source'])
 df['distance'] = np.where(df['distance'].isnull(), 0, 1)
 df['disposable_payment_enabled'] = LabelEncoder().fit_transform(df['disposable_payment_enabled'])
+df['merchant_store_id'].fillna(value=0, inplace=True)
+df['merchant_store_id'] = LabelEncoder().fit_transform(df['merchant_store_id'])
 df['deposit'] = np.where(df['deposit'] == 0, 0, 1)
 df['hit_merchant_white_list'] = LabelEncoder().fit_transform(df['hit_merchant_white_list'])
 df['fingerprint'] = np.where(df['fingerprint'].isnull(), 0, 1)
-df['bounds_example_id'].fillna(value=0, inplace=True)
+df['added_service'] = np.where(df['added_service'].isnull(), 0, 1)
+
+df.drop(['state'], axis=1, inplace=True, errors='ignore')
+all_data_df = df.copy()
+
+# 读取并处理表user
+df = pd.read_csv(datasets_path + "user.csv")
+df = df[['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag']]
+df.rename(columns={'id': 'user_id'}, inplace=True)
+df['head_image_url'].fillna(value=0, inplace=True)
+df['head_image_url'] = df['head_image_url'].map(
+    lambda x: 0 if x == ("headImg/20171126/ll15fap1o16y9zfr0ggl3g8xptgo80k9jbnp591d.png") or x == 0 else 1)
+df['recommend_code'] = np.where(df['recommend_code'].isnull(), 0, 1)
+df['regist_channel_type'].fillna(value=-999, inplace=True)
+df['regist_channel_type'] = LabelEncoder().fit_transform(df['regist_channel_type'])
+df['share_callback'] = np.where(df['share_callback'] < 1, 0, 1)
 df['tag'] = np.where(df['tag'].str.match('new'), 1, 0)
 
+all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
+
+# 读取并处理表 bargain_help
+df = pd.read_csv(datasets_path + "bargain_help.csv")
+all_data_df['have_bargain_help'] = np.where(all_data_df['user_id'].isin(df['user_id'].values), 1, 0)
+# 读取并处理表 face_id
+df = pd.read_csv(datasets_path + "face_id.csv")
+df = df[['user_id', 'status']]
+df.rename(columns={'status': 'face_check'}, inplace=True)
+df['face_check'] = LabelEncoder().fit_transform(df['face_check'])
+all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
+all_data_df['face_check'].fillna(value=-999, inplace=True)
+all_data_df['face_check'] = LabelEncoder().fit_transform(all_data_df['face_check'])
+# 读取并处理表 face_id_liveness
+df = pd.read_csv(datasets_path + "face_id_liveness.csv")
+df = df[['order_id', 'status']]
+df.rename(columns={'status': 'face_live_check'}, inplace=True)
+df['face_live_check'] = LabelEncoder().fit_transform(df['face_live_check'])
+all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
+all_data_df['face_live_check'].fillna(value=-999, inplace=True)
+all_data_df['face_live_check'] = LabelEncoder().fit_transform(all_data_df['face_live_check'])
+
+# goods goods_standardized_template merchant_white_list todo
+
+
+# 读取并处理表 order_express
+# 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address',
+df = pd.read_csv(datasets_path + "order_express.csv")
+df = df[['order_id', 'zmxy_score', 'card_id', 'phone', 'company', 'live_address', 'mode', ]]
+df = pd.merge(df, df, on='order_id', how='left')
+
+'''
+feature = 'zmxyScore'
+df[feature].value_counts()
+df[feature].fillna(value=-999, inplace=True)
+feature_analyse(df, feature)
+df[df[feature].isnull()].sort_values(by='state').shape
+missing_values_table(df)
+df[feature].unique()
+df.columns.values
+missing_values_table(all_data_df)
+'''
+# read user data
+
+'''
+feature = 'status'
+df[feature].value_counts()
+df[feature].fillna(value='INIT', inplace=True)
+feature_analyse(df, feature)
+df[df[feature].isnull()].sort_values(by='state').shape
+missing_values_table(df)
+df[feature].unique()
+df.columns.values
+'''
+
+# 把createtime分成月日周。 order_id =9085, 9098的crate_time 是错误的
+df = all_data_df
+df = df[df['create_time'] > '2016']
+es = ft.EntitySet(id='date')
+es = es.entity_from_dataframe(entity_id='date', dataframe=df, index='order_id')
+default_trans_primitives = ["day", "month", "weekday", "hour"]
+feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1,
+                                      trans_primitives=default_trans_primitives, )
+all_data_df = feature_matrix
+
+all_data_df.to_csv(datasets_path + "mibao.csv", index=False)
+print("mibao.csv saved")
+
+# merchant 违约率
 '''
 df.columns.values
 feature = 'have_bargain_help'
@@ -98,11 +183,11 @@ df[df[feature].isnull()].sort_values(by='state').shape
 missing_values_table(df)
 df[feature].unique()
 '''
-df.drop(['user_id', 'bounds_example_no', 'ip', 'merchant_store_id'], axis=1, inplace=True, errors='ignore')
+df.drop(['user_id', ], axis=1, inplace=True, errors='ignore')
 
 datasets_path
 print("保存的数据量: {}".format(df.shape))
-df.to_csv(datasets_path+"mibaodata_ml.csv", index=False)
+df.to_csv(datasets_path + "mibaodata_ml.csv", index=False)
 
 # 查看各特征关联度
 plt.figure(figsize=(14, 12))
@@ -110,8 +195,6 @@ plt.title('Pearson Correlation of Features', y=1.05, size=15)
 sns.heatmap(df.astype(float).corr(), linewidths=0.1, vmax=1.0,
             square=True, cmap=plt.cm.RdBu, linecolor='white', annot=True)
 plt.show()
-
-
 
 '''
 调试代码
@@ -184,22 +267,23 @@ zmf = [0] * len(df)
 xbf = [0] * len(df)
 for x in df['zmxy_score']:
     # print(x, row)
-    if isinstance(x, str):
-        if '/' in x:
-            score = x.split('/')
-            xbf[row] = 0 if score[0] == '' else (float(score[0]))
-            zmf[row] = 0 if score[1] == '' else (float(score[1]))
-            # print(score, row)
-        elif '>' in x:
-            zmf[row] = 600
-        else:
-            score = float(x)
-            if score <= 200:
-                xbf[row] = (score)
-            else:
-                zmf[row] = (score)
+    if
+isinstance(x, str):
+if '/' in x:
+    score = x.split('/')
+xbf[row] = 0 if score[0] == '' else (float(score[0]))
+zmf[row] = 0 if score[1] == '' else (float(score[1]))
+# print(score, row)
+elif '>' in x:
+zmf[row] = 600
+else:
+score = float(x)
+if score <= 200:
+    xbf[row] = (score)
+else:
+    zmf[row] = (score)
 
-    row += 1
+row += 1
 
 df['zmf_score'] = zmf
 df['xbf_score'] = xbf
@@ -215,8 +299,9 @@ features_cat = ['check_result', 'result', 'pay_num', 'channel', 'goods_type', 'l
 features_number = ['cost', 'daily_rent', 'price', 'age', 'zmf_score', 'xbf_score', ]
 
 for col in df[features_cat + features_number].columns.values:
-    if df[col].dtype == 'O':
-        df[col].fillna(value='NODATA', inplace=True)
+    if
+df[col].dtype == 'O':
+df[col].fillna(value='NODATA', inplace=True)
 df.fillna(value=0, inplace=True)
 
 plt.hist(df['check_result'])
@@ -259,7 +344,6 @@ df = df[features]
 # 类别特征全部转换成数字
 for feature in features:
     df[feature] = LabelEncoder().fit_transform(df[feature])
-
 
 # ## 评估结果
 # accuracy： 97.5%  --- 预测正确的个数占样本总数的比率

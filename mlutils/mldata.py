@@ -48,6 +48,10 @@ def save_all_tables_mibao():
         df = pd.read_sql_query(sql, engine)
         df.to_csv("{}{}.csv".format(datasets_path, table), index=False)
 
+    sql = ''' SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns  WHERE table_schema='mibao'; '''
+    df = pd.read_sql_query(sql, engine)
+    df.to_csv("mibao_comment.csv", index=False)
+
 
 # 找出有user_id的表，然后只保存该表中有产生订单的user_id的相关数据
 def read_save_infos_only_ordered():

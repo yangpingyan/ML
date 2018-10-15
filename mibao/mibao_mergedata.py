@@ -76,26 +76,27 @@ user_df = user_df[features_user]
 df = pd.merge(order_df, user_df, left_on='user_id', right_on='id', how='left')
 df.drop(['id'], axis=1, inplace=True)
 
-# read bargain_help data
-bargain_help_df = pd.read_csv(datasets_path + "bargain_help.csv")
-df['have_bargain_help'] = np.where(df['user_id'].isin(bargain_help_df['user_id'].values), 1, 0)
+tmp_df = pd.read_csv(datasets_path + "bargain_help.csv")
+df['have_bargain_help'] = np.where(df['user_id'].isin(tmp_df['user_id'].values), 1, 0)
 
 # read face_id data
-face_id_df = pd.read_csv(datasets_path + "face_id.csv")
-df = pd.merge(df, face_id_df, on='user_id', how='left')
-# face_id_liveness_df = pd.read_csv(datasets_path + "face_id_liveness.csv")
-# df = pd.merge(df, face_id_liveness_df, on='user_id', how='left')
+tmp_df = pd.read_csv(datasets_path + "face_id.csv")
+tmp_df = tmp_df[['user_id', 'status']]
+df = pd.merge(df, tmp_df, on='order_id', how='left')
 
 
+tmp_df = pd.read_csv(datasets_path + "face_id_liveness.csv")
+tmp_df = tmp_df[['order_id', 'status']]
+df = pd.merge(df, tmp_df, on='order_id', how='left')
 
-df.to_csv(datasets_path + "mibao.csv", index=False)
-print("mibao.csv saved")
+# goods goods_standardized_template merchant_white_list todo
 
-
+tmp_df = pd.read_csv(datasets_path + "order_detail.csv")
+tmp_df = tmp_df[['order_id', 'status']]
+df = pd.merge(df, tmp_df, on='order_id', how='left')
 
 '''
-df.columns.values
-feature = 'tag'
+feature = 'status'
 df[feature].value_counts()
 df[feature].fillna(value='INIT', inplace=True)
 feature_analyse(df, feature)
@@ -103,4 +104,8 @@ df[df[feature].isnull()].sort_values(by='state').shape
 
 missing_values_table(df)
 df[feature].unique()
+df.columns.values
+
 '''
+df.to_csv(datasets_path + "mibao.csv", index=False)
+print("mibao.csv saved")

@@ -26,9 +26,9 @@ def target_corrs(df):
     for col in df.columns:
         print(col)
         # Skip the target column
-        if col != 'TARGET':
+        if col != 'target':
             # Calculate correlation with the target
-            corr = df['TARGET'].corr(df[col])
+            corr = df['target'].corr(df[col])
 
             # Append the list as a tuple
             corrs.append((col, corr))
@@ -39,11 +39,11 @@ def target_corrs(df):
     return corrs
 
 
-def pairs_plot(plot_data, target='TARGET'):
+def pairs_plot(plot_data, target='target'):
     # Create the pairgrid object
     grid = sns.PairGrid(data=plot_data, size=3, diag_sharey=False,
-                        hue='TARGET',
-                        vars=[x for x in list(plot_data.columns) if x != 'TARGET'])
+                        hue=target,
+                        vars=[x for x in list(plot_data.columns) if x != target])
     # Upper is a scatter plot
     grid.map_upper(plt.scatter, alpha=0.2)
     # Diagonal is a histogram
@@ -92,7 +92,7 @@ def missing_values_table(df):
 
 
 # 特征分析
-def feature_analyse(df, feature, label='TARGET', bins=10):
+def feature_analyse(df, feature, label='target', bins=10):
     print("dtype of {} is {}.".format(feature, df[feature].dtype))
     print(df[feature].notnull().value_counts())
     print("-------------------------------------------")
