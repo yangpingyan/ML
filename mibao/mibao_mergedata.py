@@ -52,14 +52,14 @@ state_values_newest = df['state'].unique().tolist()
 # 若state字段有新的状态产生， 抛出异常
 assert (operator.eq(state_values_newest, state_values))
 
-df = df[df['state'].isin(pending_state_values + ['user_canceled']) != True]
+df = df[df['state'].isin(pending_state_values + ['user_canceled']) is not True]
 df.insert(0, 'target', np.where(df['state'].isin(failure_state_values), 0, 1))
 
 # 去除测试数据和内部员工数据
-df = df[df['cancel_reason'].str.contains('测试') != True]
+df = df[df['cancel_reason'].str.contains('测试') is not True]
 # df = df[df['check_remark'].str.contains('测试|内部员工') != True] #order_buyout表
 # 去除命中商户白名单的订单
-df = df[df['hit_merchant_white_list'].str.contains('01') != True]
+df = df[df['hit_merchant_white_list'].str.contains('01') is not True]
 
 df.drop(['state', 'cancel_reason', 'hit_merchant_white_list'], axis=1, inplace=True, errors='ignore')
 all_data_df = df.copy()
@@ -85,17 +85,14 @@ df = df[['order_id', 'status']]
 df.rename(columns={'status': 'face_live_check'}, inplace=True)
 all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
-
-
-
 # 读取并处理表 order_express
 # 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address', 'live_address'
 df = pd.read_csv(datasets_path + "order_express.csv")
 df = df[['order_id', 'zmxy_score', 'card_id', 'phone', 'company', ]]
 # 处理芝麻信用分 '>600' 更改成600
-zmf = [0] * len(df)
-xbf = [0] * len(df)
-for row, detail in enumerate(df['zmxy_score']):
+zmf = [0.] * len(df)
+xbf = [0.] * len(df)
+for row, detail in enumerate(df['zmxy_score'].tolist()):
     # print(row, detail)
     if isinstance(detail, str):
         if '/' in detail:
@@ -108,9 +105,9 @@ for row, detail in enumerate(df['zmxy_score']):
         else:
             score = float(detail)
             if score <= 200:
-                xbf[row] = (score)
+                xbf[row] = score
             else:
-                zmf[row] = (score)
+                zmf[row] = score
 
 df['zmf'] = zmf
 df['xbf'] = xbf
@@ -164,7 +161,7 @@ for risk_type in df['type'].unique().tolist():
 # 未处理特征：
 df = pd.read_csv(datasets_path + "risk_white_list.csv")
 user_ids = df['user_id'].values
-all_data_df = all_data_df[all_data_df['user_id'].isin(user_ids) != True]
+all_data_df = all_data_df[all_data_df['user_id'].isin(user_ids) is not True]
 
 # ser_login_record todo
 # user_longitude_latitude todo
@@ -174,7 +171,7 @@ all_data_df = all_data_df[all_data_df['user_id'].isin(user_ids) != True]
 # 未处理特征：
 df = pd.read_csv(datasets_path + "tongdun.csv")
 
-# 读取并处理表 user_active
+# 读取并处理表 user_credit
 # 未处理特征：
 df = pd.read_csv(datasets_path + "user_credit.csv")
 df = df[['user_id', 'cert_no', 'workplace', 'idcard_pros', 'idcard_cons', 'handheld_id_card', 'zhima_score',
@@ -184,13 +181,13 @@ all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 # 读取并处理表 user_device
 # 未处理特征：
 df = pd.read_csv(datasets_path + "user_device.csv")
-df = df[['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type'  ]]
+df = df[['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type']]
 all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 
 # 读取并处理表 user_third_party_account
 # 未处理特征：
 df = pd.read_csv(datasets_path + "user_third_party_account.csv")
-df = df[['user_id', 'gender', 'user_type',  ]]
+df = df[['user_id', 'gender', 'user_type', ]]
 all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 
 # 读取并处理表 user_zhima_cert
@@ -199,7 +196,6 @@ df = pd.read_csv(datasets_path + "user_zhima_cert.csv")
 df = df[['user_id', 'status', ]]
 df.rename(columns={'status': 'zhima_cert_result'}, inplace=True)
 all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
-
 
 '''
 feature = 'status'
