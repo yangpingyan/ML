@@ -58,7 +58,10 @@ df.insert(0, 'target', np.where(df['state'].isin(failure_state_values), 0, 1))
 # 去除测试数据和内部员工数据
 df = df[df['cancel_reason'].str.contains('测试') != True]
 # df = df[df['check_remark'].str.contains('测试|内部员工') != True] #order_buyout表
-df.drop(['state', 'cancel_reason'], axis=1, inplace=True, errors='ignore')
+# 去除命中商户白名单的订单
+df = df[df['hit_merchant_white_list'].str.contains('01') != True]
+
+df.drop(['state', 'cancel_reason', 'hit_merchant_white_list'], axis=1, inplace=True, errors='ignore')
 all_data_df = df.copy()
 
 # 读取并处理表user
@@ -166,11 +169,6 @@ all_data_df = all_data_df[all_data_df['user_id'].isin(user_ids) != True]
 # ser_login_record todo
 # user_longitude_latitude todo
 
-# 读取并处理表 merchant_white_list todo
-# 未处理特征：
-df = pd.read_csv(datasets_path + "merchant_white_list.csv")
-user_ids = df['user_id'].values
-# all_data_df = all_data_df[all_data_df['user_id'].isin(user_ids) != True]
 
 # 读取并处理表 tongdun todo
 # 未处理特征：
