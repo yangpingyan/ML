@@ -82,7 +82,7 @@ df = df[['order_id', 'status']]
 df.rename(columns={'status': 'face_live_check'}, inplace=True)
 all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
-# goods goods_standardized_template merchant_white_list ser_login_record todo
+
 
 
 # 读取并处理表 order_express
@@ -163,6 +163,15 @@ df = pd.read_csv(datasets_path + "risk_white_list.csv")
 user_ids = df['user_id'].values
 all_data_df = all_data_df[all_data_df['user_id'].isin(user_ids) != True]
 
+# ser_login_record todo
+# user_longitude_latitude todo
+
+# 读取并处理表 merchant_white_list todo
+# 未处理特征：
+df = pd.read_csv(datasets_path + "merchant_white_list.csv")
+user_ids = df['user_id'].values
+# all_data_df = all_data_df[all_data_df['user_id'].isin(user_ids) != True]
+
 # 读取并处理表 tongdun todo
 # 未处理特征：
 df = pd.read_csv(datasets_path + "tongdun.csv")
@@ -180,7 +189,6 @@ df = pd.read_csv(datasets_path + "user_device.csv")
 df = df[['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type'  ]]
 all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 
-# user_longitude_latitude todo
 # 读取并处理表 user_third_party_account
 # 未处理特征：
 df = pd.read_csv(datasets_path + "user_third_party_account.csv")
