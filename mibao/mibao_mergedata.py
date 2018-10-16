@@ -25,7 +25,6 @@ if os.getcwd().find(PROJECT_ID) == -1:
 datasets_path = os.getcwd() + '\\datasets\\'
 
 # 读取并处理主表order, 所有表合并成all_data_df
-# 未处理feature: ip,
 df = pd.read_csv(datasets_path + "order.csv", encoding='utf-8', engine='python')
 df = df[['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
          'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
@@ -163,18 +162,10 @@ df = pd.read_csv(datasets_path + "risk_white_list.csv")
 user_ids = df['user_id'].values
 all_data_df = all_data_df[all_data_df['user_id'].isin(user_ids) != True]
 
-# ser_login_record todo
-# user_longitude_latitude todo
-
-
-# 读取并处理表 tongdun todo
-# 未处理特征：
-df = pd.read_csv(datasets_path + "tongdun.csv")
-
 # 读取并处理表 user_credit
 # 未处理特征：
 df = pd.read_csv(datasets_path + "user_credit.csv")
-df = df[['user_id', 'cert_no', 'workplace', 'idcard_pros', 'idcard_cons', 'handheld_id_card', 'zhima_score',
+df = df[['user_id', 'cert_no', 'workplace', 'idcard_pros', 'idcard_cons', 'zhima_score',
          'occupational_identity_type', 'company_phone', 'cert_no_expiry_date', 'cert_no_json', ]]
 all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 
@@ -187,18 +178,23 @@ all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 # 读取并处理表 user_third_party_account
 # 未处理特征：
 df = pd.read_csv(datasets_path + "user_third_party_account.csv")
-df = df[['user_id', 'gender', 'user_type', ]]
-all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
+counts_df = pd.DataFrame({'account_num': df['user_id'].value_counts()})
+counts_df['user_id'] = counts_df.index
+all_data_df = pd.merge(all_data_df, counts_df, on='user_id', how='left')
 
 # 读取并处理表 user_zhima_cert
 # 未处理特征：
 df = pd.read_csv(datasets_path + "user_zhima_cert.csv")
-df = df[['user_id', 'status', ]]
-df.rename(columns={'status': 'zhima_cert_result'}, inplace=True)
-all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
+df = df[['user_id', 'status', ]][df['status'].str.match('PASSED')]
+all_data_df['zhima_cert_result'] = np.where(all_data_df['user_id'].isin(df['user_id'].tolist()), 1, 0)
+
+# 读取并处理表 ser_login_record todo
+# df = pd.read_csv(datasets_path + "ser_login_record.csv")
+# df = df[['user_id', 'final_score', 'final_decision', 'result_desc', 'supplement_info']]
+# all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 
 '''
-feature = 'status'
+feature = 'input_parameter_json'
 df[feature].value_counts()
 df.shape
 missing_values_table(df)
@@ -210,25 +206,6 @@ missing_values_table(all_data_df)
 # 保存数据
 missing_values_table(all_data_df)
 all_data_df.to_csv(datasets_path + "mibao.csv", index=False)
-exit('merge')
+print("mibao.csv saved with shape {}".format(all_data_df.shape))
 
-'''
-feature = 'result'
-df[feature].value_counts()
-df[feature].fillna(value=-999, inplace=True)
-feature_analyse(df, feature)
-df[df[feature].isnull()].sort_values(by='state').shape
-df.shape
-missing_values_table(df)
-df[feature].unique()
-df.columns.values
-missing_values_table(all_data_df)
-'''
-# read user data
-
-
-all_data_df.to_csv(datasets_path + "mibao.csv", index=False)
-print("mibao.csv saved")
-
-# merchant 违约率
-
+exit('mergedata')

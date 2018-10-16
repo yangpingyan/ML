@@ -37,10 +37,12 @@ datasets_path = os.getcwd() + '\\datasets\\'
 all_data_df = pd.read_csv(datasets_path + "mibao.csv", encoding='utf-8', engine='python')
 
 df = all_data_df.copy()
+# In[1]
 # 开始处理特征
 df['merchant_store_id'].fillna(value=0, inplace=True)
 df['device_type'].fillna(value='NODATA', inplace=True)
 df['regist_channel_type'].fillna(value=-999, inplace=True)
+
 
 features_cat = ['installment', 'commented', 'type', 'source', 'disposable_payment_enabled', 'merchant_store_id',
                 'hit_merchant_white_list', 'device_type', 'releted', 'goods_type', 'merchant_id', 'order_type',
@@ -75,7 +77,7 @@ df = feature_matrix
 print("保存的数据量: {}".format(df.shape))
 df.to_csv(datasets_path + "mibaodata_ml.csv", index=False)
 exit('dm')
-
+# merchant 违约率 todo
 '''
 feature = 'result'
 df[feature].value_counts()
@@ -338,8 +340,6 @@ for feature in features:
 # accuracy： 97.5%  --- 预测正确的个数占样本总数的比率
 # precision： 91.4% --- 预测通过正确的个数占预测通过的比率
 # recall：81.4% --- 预测通过正确的个数占实际通过的比率
-
-# In[42]:
 
 
 # 使用PR曲线： 当正例较少或者关注假正例多假反例。 其他情况用ROC曲线
