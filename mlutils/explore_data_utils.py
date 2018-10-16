@@ -56,7 +56,10 @@ def pairs_plot(plot_data, target='target'):
 
 
 # 保存所有模型得分
-def add_score(score_df, name, y_pred, y_test):
+def add_score(name, y_test, y_pred):
+    if 'score_df' not in dir():
+        score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
+
     score_df[name] = [accuracy_score(y_test, y_pred), precision_score(y_test, y_pred), recall_score(y_test, y_pred),
                       f1_score(y_test, y_pred), confusion_matrix(y_test, y_pred)]
 

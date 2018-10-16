@@ -35,10 +35,10 @@ from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.model_selection import KFold
 from xgboost import XGBClassifier
 import lightgbm as lgb
+import warnings
+from mlutils import *
 
 # Suppress warnings
-import warnings
-
 warnings.filterwarnings('ignore')
 # to make output display better
 pd.set_option('display.max_columns', 50)
@@ -48,52 +48,20 @@ plt.rcParams['axes.labelsize'] = 14
 plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
 # read large csv file
-PROJECT_ROOT_DIR = os.getcwd()
-DATA_ID = "mibaodata_ml.csv"
-DATASETS_PATH = os.path.join(PROJECT_ROOT_DIR, "datasets", DATA_ID)
-# Get Data
-df = pd.read_csv(DATASETS_PATH, encoding='utf-8', engine='python')
-print("ML初始数据量: {}".format(df.shape))
+PROJECT_ID = 'mibao'
+# ## 获取数据
+if os.getcwd().find(PROJECT_ID) == -1:
+    os.chdir(PROJECT_ID)
+datasets_path = os.getcwd() + '\\datasets\\'
+df = pd.read_csv(datasets_path + "mibaodata_ml.csv", encoding='utf-8', engine='python')
 
-x = df.drop(['check_result'], axis=1)
-y = df['check_result']
+x = df.drop(['target'], axis=1)
+y = df['target']
 ## Splitting the dataset into the Training set and Test set
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
 
-'''
-With these two criteria - Supervised Learning plus Classification and Regression, 
-we can narrow down our choice of models to a few. These include:
-Logistic Regression
-KNN or k-Nearest Neighbors
-Support Vector Machines
-Naive Bayes classifier
-Decision Tree
-Random Forrest
-Perceptron
-Artificial neural network
-RVM or Relevance Vector Machine
-XGBoost
-LightGBM
-'''
-
-
-# 保存所有模型得分
-def add_score(score_df, name, runtime, x_test, y_test):
-    score_df[name] = [accuracy_score(y_test, y_pred), precision_score(y_test, y_pred), recall_score(y_test, y_pred),
-                      f1_score(y_test, y_pred), runtime, confusion_matrix(y_test, y_pred)]
-
-    return score_df
-
-
+# Naive Bayes classifier, Artificial neural network, RVM or Relevance Vector Machine
 log_clf = LogisticRegression()
-log_clf.fit(x_train, y_train)
-y_pred = log_clf.predict(x_test)
-coeff_df = pd.DataFrame(x_test.columns.values)
-coeff_df.columns = ['Feature']
-coeff_df["Correlation"] = pd.Series(log_clf.coef_[0])
-coeff_df.sort_values(by='Correlation', ascending=False, inplace=True)
-print(coeff_df)
-
 knn_clf = KNeighborsClassifier()
 gaussian_clf = GaussianNB()
 perceptron_clf = Perceptron()
@@ -105,16 +73,17 @@ rnd_clf = RandomForestClassifier()
 xg_clf = XGBClassifier()
 lgbm = lgb.LGBMClassifier()
 
-clf_list = [lgbm, xg_clf, knn_clf, log_clf, sgd_clf, decision_tree, rnd_clf, gaussian_clf, linear_svc]
-score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'runtime', 'confusion_matrix'])
+clf_list = [lgbm, xg_clf, rnd_clf, decision_tree, linear_svc, svm_clf, sgd_clf, perceptron_clf, gaussian_clf, knn_clf,
+            log_clf, ]
+
 for clf in clf_list:
     starttime = time.clock()
     clf.fit(x_train, y_train)
     y_pred = clf.predict(x_test)
-    add_score(score_df, clf.__class__.__name__, time.clock() - starttime, x_test, y_test)
-
+    score_df = add_score(clf.__class__.__name__, y_test, y_pred)
+    break
 print(score_df)
-
+exit('ml')
 # 使用PR曲线： 当正例较少或者关注假正例多假反例。 其他情况用ROC曲线
 plt.figure(figsize=(8, 6))
 plt.xlabel("Recall(FPR)", fontsize=16)

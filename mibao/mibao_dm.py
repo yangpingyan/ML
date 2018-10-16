@@ -34,75 +34,62 @@ PROJECT_ID = 'mibao'
 if os.getcwd().find(PROJECT_ID) == -1:
     os.chdir(PROJECT_ID)
 datasets_path = os.getcwd() + '\\datasets\\'
+all_data_df = pd.read_csv(datasets_path + "mibao.csv", encoding='utf-8', engine='python')
 
-# 读取并处理主表order, 所有表合并成all_data_df
-# 未处理feature: ip,
-features_order = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
-                  'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
-                  'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
-                  'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
-                  'deposit', 'hit_merchant_white_list', 'fingerprint', ]
-
-df = pd.read_csv(datasets_path + "order.csv", encoding='utf-8', engine='python')
-df = df[features_order]
-df.rename(columns={'id': 'order_id'}, inplace=True)
-
-# 根据state生成TARGET，代表最终审核是否通过
-state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pay',
-                'artificial_credit_check_unpass_canceled', 'pending_artificial_credit_check', 'lease_finished',
-                'return_overdue', 'order_payment_overtime_canceled', 'pending_send_goods',
-                'merchant_not_yet_send_canceled', 'running_overdue', 'buyout_finished', 'pending_user_compensate',
-                'repairing', 'express_rejection_canceled', 'pending_return', 'returning', 'return_goods',
-                'pending_relet_check', 'returned_received', 'relet_finished', 'merchant_relet_check_unpass_canceled',
-                'system_credit_check_unpass_canceled', 'pending_jimi_credit_check', 'pending_relet_start',
-                'pending_refund_deposit', 'merchant_credit_check_unpass_canceled']
-failure_state_values = ['user_canceled', 'artificial_credit_check_unpass_canceled', 'return_overdue', 'running_overdue',
-                        'merchant_relet_check_unpass_canceled', 'system_credit_check_unpass_canceled',
-                        'merchant_credit_check_unpass_canceled']
-pending_state_values = ['pending_artificial_credit_check', 'pending_relet_check', 'pending_jimi_credit_check',
-                        'pending_relet_start']
-state_values_newest = df['state'].unique().tolist()
-# 若state字段有新的状态产生， 抛出异常
-assert (operator.eq(state_values_newest, state_values))
-
-df = df[df['state'].isin(pending_state_values) == False]
-df.insert(0, 'target', np.where(df['state'].isin(failure_state_values), 0, 1))
-
+df = all_data_df.copy()
 # 开始处理特征
-df['installment'] = LabelEncoder().fit_transform(df['installment'])
-df['bounds_example_id'] = np.where(df['bounds_example_id'].isnull(), 0, 1)
-df['bounds_example_no'] = np.where(df['bounds_example_no'].isnull(), 0, 1)
-df['goods_type'] = LabelEncoder().fit_transform(df['goods_type'])
-df['commented'] = LabelEncoder().fit_transform(df['commented'])
-df['type'] = LabelEncoder().fit_transform(df['type'])
-df['order_type'] = LabelEncoder().fit_transform(df['order_type'])
-df['device_type'].fillna(value='NODATA', inplace=True)
-df['device_type'] = LabelEncoder().fit_transform(df['device_type'])
-df['source'] = LabelEncoder().fit_transform(df['source'])
-df['distance'] = np.where(df['distance'].isnull(), 0, 1)
-df['disposable_payment_enabled'] = LabelEncoder().fit_transform(df['disposable_payment_enabled'])
 df['merchant_store_id'].fillna(value=0, inplace=True)
-df['merchant_store_id'] = LabelEncoder().fit_transform(df['merchant_store_id'])
+df['device_type'].fillna(value='NODATA', inplace=True)
+df['regist_channel_type'].fillna(value=-999, inplace=True)
+
+features_cat = ['installment', 'commented', 'type', 'source', 'disposable_payment_enabled', 'merchant_store_id',
+                'hit_merchant_white_list', 'device_type', 'releted', 'goods_type', 'merchant_id', 'order_type',
+                'regist_channel_type', ]
+for feature in features_cat:
+    df[feature] = LabelEncoder().fit_transform(df[feature])
+
+features_cat_null = ['bounds_example_id', 'bounds_example_no', 'distance', 'fingerprint', 'added_service',
+                     'recommend_code', ]
+for feature in features_cat_null:
+    df[feature] = np.where(df[feature].isnull(), 0, 1)
+
 df['deposit'] = np.where(df['deposit'] == 0, 0, 1)
-df['hit_merchant_white_list'] = LabelEncoder().fit_transform(df['hit_merchant_white_list'])
-df['fingerprint'] = np.where(df['fingerprint'].isnull(), 0, 1)
-df['added_service'] = np.where(df['added_service'].isnull(), 0, 1)
 
-df.drop(['state'], axis=1, inplace=True, errors='ignore')
-all_data_df = df.copy()
-
-# 读取并处理表user
-df = pd.read_csv(datasets_path + "user.csv")
-df = df[['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag']]
-df.rename(columns={'id': 'user_id'}, inplace=True)
 df['head_image_url'].fillna(value=0, inplace=True)
 df['head_image_url'] = df['head_image_url'].map(
     lambda x: 0 if x == ("headImg/20171126/ll15fap1o16y9zfr0ggl3g8xptgo80k9jbnp591d.png") or x == 0 else 1)
-df['recommend_code'] = np.where(df['recommend_code'].isnull(), 0, 1)
-df['regist_channel_type'].fillna(value=-999, inplace=True)
-df['regist_channel_type'] = LabelEncoder().fit_transform(df['regist_channel_type'])
+
 df['share_callback'] = np.where(df['share_callback'] < 1, 0, 1)
 df['tag'] = np.where(df['tag'].str.match('new'), 1, 0)
+missing_values_table(df)
+
+df.drop(['order_id', 'user_id'], axis=1, inplace=True, errors='ignore')
+# 把createtime分成月日周。 order_id =9085, 9098的crate_time 是错误的
+df = df[df['create_time'] > '2016']
+es = ft.EntitySet(id='date')
+es = es.entity_from_dataframe(entity_id='date', dataframe=df, index='order_id')
+default_trans_primitives = ["day", "month", "weekday", "hour"]
+feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1,
+                                      trans_primitives=default_trans_primitives, )
+df = feature_matrix
+print("保存的数据量: {}".format(df.shape))
+df.to_csv(datasets_path + "mibaodata_ml.csv", index=False)
+exit('dm')
+
+'''
+feature = 'result'
+df[feature].value_counts()
+df[feature].fillna(value=-999, inplace=True)
+feature_analyse(df, feature)
+df[df[feature].isnull()].sort_values(by='state').shape
+df.shape
+missing_values_table(df)
+df[feature].unique()
+df.columns.values
+missing_values_table(all_data_df)
+'''
+
+# 读取并处理表user
 
 all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 
@@ -155,8 +142,8 @@ for row, detail in enumerate(df['zmxy_score']):
 
 df['zmf'] = zmf
 df['xbf'] = xbf
-zmf_most = df['zmf'][df['zmf']>0].value_counts().index[0]
-xbf_most = df['xbf'][df['xbf']>0].value_counts().index[0]
+zmf_most = df['zmf'][df['zmf'] > 0].value_counts().index[0]
+xbf_most = df['xbf'][df['xbf'] > 0].value_counts().index[0]
 df['zmf'][df['zmf'] == 0] = zmf_most
 df['xbf'][df['xbf'] == 0] = xbf_most
 # 根据身份证号增加性别和年龄 年龄的计算需根据订单创建日期计算
@@ -164,23 +151,55 @@ df['age'] = df['card_id'].map(lambda x: 2018 - int(x[6:10]))
 df['sex'] = df['card_id'].map(lambda x: int(x[-2]) % 2)
 df['phone'] = df['phone'].astype(str)
 df['phone'][df['phone'].str.len() != 11] = '0'
-df['phone'] = df['phone'].str.slice(0,3)
-df.drop(labels=['card_id','zmxy_score' ], axis=1, inplace=True, errors='ignore')
+df['phone'] = df['phone'].str.slice(0, 3)
+df.drop(labels=['card_id', 'zmxy_score'], axis=1, inplace=True, errors='ignore')
 all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 all_data_df['company'] = np.where(all_data_df['company'].isnull(), 0, 1)
 
-# 读取并处理表 order_express
-# 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address', 'live_address'
-df = pd.read_csv(datasets_path + ".csv")
-df = df[[ ]]
+# 读取并处理表 order_phone_book
+# 未处理特征：
+df = pd.read_csv(datasets_path + "order_phone_book.csv")
+df = df[['order_id', 'emergency_contact_name', 'phone_book', 'emergency_contact_phone', 'emergency_contact_relation']]
+all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
+# 读取并处理表 order_goods
+# 未处理特征：
+df = pd.read_csv(datasets_path + "order_goods.csv")
+df = df[['order_id', 'num', 'price', 'category', 'old_level', ]]
+df['phone_book'].str.count('mobile')
+all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
+
+# 读取并处理表 order_xinyongzu
+# 未处理特征：
+# df = pd.read_csv(datasets_path + "order_xinyongzu.csv")
+# df = df[['order_id', 'emergency_contact_name', 'phone_book', 'emergency_contact_phone', 'emergency_contact_relation']]
+# df['phone_book'].str.count('mobile')
+# all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
+
+# 读取并处理表 risk_order
+# 未处理特征：
+df = pd.read_csv(datasets_path + "risk_order.csv")
+df = df[['order_id', 'type', 'result', 'detail_json', ]]
+df.rename(columns={'type': 'risk_check_type'}, inplace=True)
+df['result'] = df['result'].str.lower()
+all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
+
+# 读取并处理表 risk_white_list
+# 未处理特征：
+df = pd.read_csv(datasets_path + "risk_white_list.csv")
+user_ids = df['user_id'].values
+
+df['result'] = df['result'].str.lower()
+all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
+all_data_df[all_data_df['user_id'] == 3]
 
 '''
-feature = 'zmxyScore'
+feature = 'result'
 df[feature].value_counts()
 df[feature].fillna(value=-999, inplace=True)
 feature_analyse(df, feature)
 df[df[feature].isnull()].sort_values(by='state').shape
+df.shape
 missing_values_table(df)
 df[feature].unique()
 df.columns.values
@@ -188,16 +207,6 @@ missing_values_table(all_data_df)
 '''
 # read user data
 
-'''
-feature = 'status'
-df[feature].value_counts()
-df[feature].fillna(value='INIT', inplace=True)
-feature_analyse(df, feature)
-df[df[feature].isnull()].sort_values(by='state').shape
-missing_values_table(df)
-df[feature].unique()
-df.columns.values
-'''
 
 # 把createtime分成月日周。 order_id =9085, 9098的crate_time 是错误的
 df = all_data_df
@@ -259,41 +268,15 @@ missing_values_table(df)
  b. 创造未被保存到数据库中的特征：年化利率,是否有2个手机号。
 '''
 
-# 丢弃身份证号为空的数据
-df.dropna(subset=['card_id'], inplace=True)
-print("去除无身份证号后的数据量: {}".format(df.shape))
-# 取有审核结果的数据
-df = df[df['check_result'].str.contains('SUCCESS|FAILURE', na=False)]
-print("去除未经机审用户后的数据量: {}".format(df.shape))
-# 去除测试数据和内部员工数据
-df = df[df['cancel_reason'].str.contains('测试|内部员工') != True]
-df = df[df['check_remark'].str.contains('测试|内部员工') != True]
-print("去除测试数据和内部员工后的数据量: {}".format(df.shape))
-# 去掉用户自己取消的数据   问题：即使用户取消了，仍然会有审核？？
-df = df[df['state'].str.match('user_canceled') != True]
-print("去除用户自己取消后的数据量: {}".format(df.shape))
-# 去除身份证重复的订单：
-df.drop_duplicates(subset=['card_id'], keep='last', inplace=True)
-print("去除身份证重复的订单后的数据量: {}".format(df.shape))
-
 # 所有字符串变成大写字母
 objs_df = pd.DataFrame({"isobj": pd.Series(df.dtypes == 'object')})
 df[objs_df[objs_df['isobj'] == True].index.values] = df[objs_df[objs_df['isobj'] == True].index.values].applymap(
     lambda x: x.upper() if isinstance(x, str) else x)
 
-# 隐藏身份证信息
-df['card_id'] = df['card_id'].map(lambda x: x.replace(x[10:16], '******') if isinstance(x, str) else x)
-
-# 处理running_overdue 和 return_overdue 的逾期 的 check_result
-df.loc[df['state'].str.contains('overdue') == True, 'check_result'] = 'FAILURE'
-df['check_result'] = df['check_result'].apply(lambda x: 1 if 'SUCCESS' in x else 0)
-
 # 有phone_book的赋值成1， 空的赋值成0
 df['phone_book'][df['phone_book'].notnull()] = 1
 df['phone_book'][df['phone_book'].isnull()] = 0
-# 根据create_time 按时间段分类
-df['create_hour'] = df['create_time'].map(lambda x: int(x[-8:-6]))
-df['create_time_cat'] = df['create_hour'].map(lambda x: 0 if 0 < x < 7 else 1)
+
 # 同盾白骑士审核结果统一
 df['result'] = df['result'].map(lambda x: x.upper() if isinstance(x, str) else 'NODATA')
 df['result'][df['result'].str.match('ACCEPT')] = 'PASS'
@@ -301,16 +284,14 @@ df['result'][df['result'].str.match('ACCEPT')] = 'PASS'
 df['emergency_contact_phone'][df['emergency_contact_phone'].notnull()] = 1
 df['emergency_contact_phone'][df['emergency_contact_phone'].isnull()] = 0
 
-
 features_cat = ['check_result', 'result', 'pay_num', 'channel', 'goods_type', 'lease_term', 'type', 'order_type',
                 'source', 'phone_book', 'emergency_contact_phone', 'old_level', 'create_hour', 'sex', ]
 features_number = ['cost', 'daily_rent', 'price', 'age', 'zmf_score', 'xbf_score', ]
 
 for col in df[features_cat + features_number].columns.values:
-    if
-df[col].dtype == 'O':
-df[col].fillna(value='NODATA', inplace=True)
-df.fillna(value=0, inplace=True)
+    if df[col].dtype == 'O':
+        df[col].fillna(value='NODATA', inplace=True)
+        df.fillna(value=0, inplace=True)
 
 plt.hist(df['check_result'])
 feature_analyse(df, 'result')
