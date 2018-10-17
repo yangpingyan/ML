@@ -30,7 +30,7 @@ df = df[['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'instal
          'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
          'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
          'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
-         'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'releted']]
+         'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason',]]
 df.rename(columns={'id': 'order_id'}, inplace=True)
 
 # 根据state生成TARGET，代表最终审核是否通过
@@ -165,14 +165,15 @@ all_data_df = all_data_df[all_data_df['user_id'].isin(user_ids) != True]
 # 读取并处理表 user_credit
 # 未处理特征：
 df = pd.read_csv(datasets_path + "user_credit.csv")
-df = df[['user_id', 'cert_no', 'workplace', 'idcard_pros', 'idcard_cons', 'zhima_score',
+df = df[['user_id', 'cert_no', 'workplace', 'idcard_pros', 'idcard_cons',
          'occupational_identity_type', 'company_phone', 'cert_no_expiry_date', 'cert_no_json', ]]
 all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 
 # 读取并处理表 user_device
-# 未处理特征：
+# 未处理特征： 判断user_id是不是只有1条
 df = pd.read_csv(datasets_path + "user_device.csv")
 df = df[['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type']]
+df.rename(columns={'device_type':'device_type_os'}, inplace=True)
 all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 
 # 读取并处理表 user_third_party_account
@@ -188,7 +189,7 @@ df = pd.read_csv(datasets_path + "user_zhima_cert.csv")
 df = df[['user_id', 'status', ]][df['status'].str.match('PASSED')]
 all_data_df['zhima_cert_result'] = np.where(all_data_df['user_id'].isin(df['user_id'].tolist()), 1, 0)
 
-# 读取并处理表 ser_login_record todo
+# 读取并处理表 用户登陆使用情况， 在mango数据库
 # df = pd.read_csv(datasets_path + "ser_login_record.csv")
 # df = df[['user_id', 'final_score', 'final_decision', 'result_desc', 'supplement_info']]
 # all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
@@ -207,5 +208,5 @@ missing_values_table(all_data_df)
 missing_values_table(all_data_df)
 all_data_df.to_csv(datasets_path + "mibao.csv", index=False)
 print("mibao.csv saved with shape {}".format(all_data_df.shape))
-
+# In[]
 exit('mergedata')

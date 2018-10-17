@@ -37,16 +37,25 @@ datasets_path = os.getcwd() + '\\datasets\\'
 all_data_df = pd.read_csv(datasets_path + "mibao.csv", encoding='utf-8', engine='python')
 
 df = all_data_df.copy()
+print("data shape {}".format(all_data_df.shape))
+
 # In[1]
 # 开始处理特征
 df['merchant_store_id'].fillna(value=0, inplace=True)
 df['device_type'].fillna(value='NODATA', inplace=True)
 df['regist_channel_type'].fillna(value=-999, inplace=True)
+df['face_check'].fillna(value=-999, inplace=True)
+df['face_live_check'].fillna(value=-999, inplace=True)
 
+df.columns.values
+tmp = df[['device_type_x', 'device_type_y']][df['device_type_x'] != df['device_type_y']]
+df['device_type_x'].value_counts()
+df['device_type_y'].value_counts()
 
+# In[1]
 features_cat = ['installment', 'commented', 'type', 'source', 'disposable_payment_enabled', 'merchant_store_id',
                 'hit_merchant_white_list', 'device_type', 'releted', 'goods_type', 'merchant_id', 'order_type',
-                'regist_channel_type', ]
+                'regist_channel_type', 'face_check', 'face_live_check',]
 for feature in features_cat:
     df[feature] = LabelEncoder().fit_transform(df[feature])
 
@@ -56,6 +65,7 @@ for feature in features_cat_null:
     df[feature] = np.where(df[feature].isnull(), 0, 1)
 
 df['deposit'] = np.where(df['deposit'] == 0, 0, 1)
+df['company'] = np.where(all_data_df['company'].isnull(), 0, 1)
 
 df['head_image_url'].fillna(value=0, inplace=True)
 df['head_image_url'] = df['head_image_url'].map(
@@ -93,150 +103,22 @@ missing_values_table(all_data_df)
 
 # 读取并处理表user
 
-all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 
 # 读取并处理表 bargain_help
-df = pd.read_csv(datasets_path + "bargain_help.csv")
-all_data_df['have_bargain_help'] = np.where(all_data_df['user_id'].isin(df['user_id'].values), 1, 0)
-# 读取并处理表 face_id
-df = pd.read_csv(datasets_path + "face_id.csv")
-df = df[['user_id', 'status']]
-df.rename(columns={'status': 'face_check'}, inplace=True)
-df['face_check'] = LabelEncoder().fit_transform(df['face_check'])
-all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
-all_data_df['face_check'].fillna(value=-999, inplace=True)
-all_data_df['face_check'] = LabelEncoder().fit_transform(all_data_df['face_check'])
-# 读取并处理表 face_id_liveness
-df = pd.read_csv(datasets_path + "face_id_liveness.csv")
-df = df[['order_id', 'status']]
-df.rename(columns={'status': 'face_live_check'}, inplace=True)
-df['face_live_check'] = LabelEncoder().fit_transform(df['face_live_check'])
-all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
-all_data_df['face_live_check'].fillna(value=-999, inplace=True)
-all_data_df['face_live_check'] = LabelEncoder().fit_transform(all_data_df['face_live_check'])
-
-# goods goods_standardized_template merchant_white_list todo
-
-
-# 读取并处理表 order_express
-# 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address', 'live_address'
-df = pd.read_csv(datasets_path + "order_express.csv")
-df = df[['order_id', 'zmxy_score', 'card_id', 'phone', 'company', ]]
-# 处理芝麻信用分 '>600' 更改成600
-zmf = [0] * len(df)
-xbf = [0] * len(df)
-for row, detail in enumerate(df['zmxy_score']):
-    # print(row, detail)
-    if isinstance(detail, str):
-        if '/' in detail:
-            score = detail.split('/')
-            xbf[row] = 0 if score[0] == '' else (float(score[0]))
-            zmf[row] = 0 if score[1] == '' else (float(score[1]))
-        # print(score, row)
-        elif '>' in detail:
-            zmf[row] = 600
-        else:
-            score = float(detail)
-            if score <= 200:
-                xbf[row] = (score)
-            else:
-                zmf[row] = (score)
-
-df['zmf'] = zmf
-df['xbf'] = xbf
-zmf_most = df['zmf'][df['zmf'] > 0].value_counts().index[0]
-xbf_most = df['xbf'][df['xbf'] > 0].value_counts().index[0]
-df['zmf'][df['zmf'] == 0] = zmf_most
-df['xbf'][df['xbf'] == 0] = xbf_most
-# 根据身份证号增加性别和年龄 年龄的计算需根据订单创建日期计算
-df['age'] = df['card_id'].map(lambda x: 2018 - int(x[6:10]))
-df['sex'] = df['card_id'].map(lambda x: int(x[-2]) % 2)
-df['phone'] = df['phone'].astype(str)
-df['phone'][df['phone'].str.len() != 11] = '0'
-df['phone'] = df['phone'].str.slice(0, 3)
-df.drop(labels=['card_id', 'zmxy_score'], axis=1, inplace=True, errors='ignore')
-all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
-all_data_df['company'] = np.where(all_data_df['company'].isnull(), 0, 1)
-
-# 读取并处理表 order_phone_book
-# 未处理特征：
-df = pd.read_csv(datasets_path + "order_phone_book.csv")
-df = df[['order_id', 'emergency_contact_name', 'phone_book', 'emergency_contact_phone', 'emergency_contact_relation']]
-all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
-
-# 读取并处理表 order_goods
-# 未处理特征：
-df = pd.read_csv(datasets_path + "order_goods.csv")
-df = df[['order_id', 'num', 'price', 'category', 'old_level', ]]
-df['phone_book'].str.count('mobile')
-all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
-
-# 读取并处理表 order_xinyongzu
-# 未处理特征：
-# df = pd.read_csv(datasets_path + "order_xinyongzu.csv")
-# df = df[['order_id', 'emergency_contact_name', 'phone_book', 'emergency_contact_phone', 'emergency_contact_relation']]
-# df['phone_book'].str.count('mobile')
-# all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
-
-# 读取并处理表 risk_order
-# 未处理特征：
-df = pd.read_csv(datasets_path + "risk_order.csv")
-df = df[['order_id', 'type', 'result', 'detail_json', ]]
-df.rename(columns={'type': 'risk_check_type'}, inplace=True)
-df['result'] = df['result'].str.lower()
-all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
-
-# 读取并处理表 risk_white_list
-# 未处理特征：
-df = pd.read_csv(datasets_path + "risk_white_list.csv")
-user_ids = df['user_id'].values
-
-df['result'] = df['result'].str.lower()
-all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
-all_data_df[all_data_df['user_id'] == 3]
-
-'''
-feature = 'result'
-df[feature].value_counts()
-df[feature].fillna(value=-999, inplace=True)
-feature_analyse(df, feature)
-df[df[feature].isnull()].sort_values(by='state').shape
-df.shape
-missing_values_table(df)
-df[feature].unique()
-df.columns.values
-missing_values_table(all_data_df)
-'''
-# read user data
 
 
 # 把createtime分成月日周。 order_id =9085, 9098的crate_time 是错误的
-df = all_data_df
-df = df[df['create_time'] > '2016']
+tmp_df = df[['order_id', 'create_time']]
+tmp_df = tmp_df[tmp_df['create_time'] > '2016']
 es = ft.EntitySet(id='date')
-es = es.entity_from_dataframe(entity_id='date', dataframe=df, index='order_id')
+es = es.entity_from_dataframe(entity_id='date', dataframe=tmp_df, index='order_id')
 default_trans_primitives = ["day", "month", "weekday", "hour"]
 feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1,
                                       trans_primitives=default_trans_primitives, )
-all_data_df = feature_matrix
 
-all_data_df.to_csv(datasets_path + "mibao.csv", index=False)
-print("mibao.csv saved")
 
 # merchant 违约率
-'''
-df.columns.values
-feature = 'have_bargain_help'
-df[feature].value_counts()
-feature_analyse(df, feature)
-df[df[feature].isnull()].sort_values(by='state').shape
-
-missing_values_table(df)
-df[feature].unique()
-'''
 df.drop(['user_id', ], axis=1, inplace=True, errors='ignore')
-
-datasets_path
 print("保存的数据量: {}".format(df.shape))
 df.to_csv(datasets_path + "mibaodata_ml.csv", index=False)
 

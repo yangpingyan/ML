@@ -83,6 +83,7 @@ for clf in clf_list:
     score_df = add_score(clf.__class__.__name__, y_test, y_pred)
     break
 print(score_df)
+# In[1]
 exit('ml')
 # 使用PR曲线： 当正例较少或者关注假正例多假反例。 其他情况用ROC曲线
 plt.figure(figsize=(8, 6))
