@@ -39,33 +39,26 @@ all_data_df = pd.read_csv(datasets_path + "mibao.csv", encoding='utf-8', engine=
 df = all_data_df.copy()
 print("data shape {}".format(all_data_df.shape))
 
-# In[1]
+df = all_data_df.copy()
 # 开始处理特征
-df['merchant_store_id'].fillna(value=0, inplace=True)
-df['device_type'].fillna(value='NODATA', inplace=True)
-df['regist_channel_type'].fillna(value=-999, inplace=True)
-df['face_check'].fillna(value=-999, inplace=True)
-df['face_live_check'].fillna(value=-999, inplace=True)
-
-df.columns.values
-tmp = df[['device_type_x', 'device_type_y']][df['device_type_x'] != df['device_type_y']]
-df['device_type_x'].value_counts()
-df['device_type_y'].value_counts()
-
-# In[1]
+# 类别特征处理
 features_cat = ['installment', 'commented', 'type', 'source', 'disposable_payment_enabled', 'merchant_store_id',
-                'hit_merchant_white_list', 'device_type', 'releted', 'goods_type', 'merchant_id', 'order_type',
-                'regist_channel_type', 'face_check', 'face_live_check',]
+                'device_type', 'goods_type', 'merchant_id', 'order_type', 'regist_channel_type', 'face_check',
+                'face_live_check', 'occupational_identity_type', 'ingress_type', 'device_type_os', 'bai_qi_shi_result',
+                'guanzhu_result', 'tongdun_result', 'delivery_way']
 for feature in features_cat:
+    df[feature].fillna(value='NODATA' if df[feature].dtype == 'O' else -999, inplace=True)
     df[feature] = LabelEncoder().fit_transform(df[feature])
 
+# 只判断是否空值的特征处理
 features_cat_null = ['bounds_example_id', 'bounds_example_no', 'distance', 'fingerprint', 'added_service',
-                     'recommend_code', ]
+                     'recommend_code', 'regist_device_info', 'company', 'company_phone', 'workplace',
+                     'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
+                     'idcard_pros', ]
 for feature in features_cat_null:
     df[feature] = np.where(df[feature].isnull(), 0, 1)
 
 df['deposit'] = np.where(df['deposit'] == 0, 0, 1)
-df['company'] = np.where(all_data_df['company'].isnull(), 0, 1)
 
 df['head_image_url'].fillna(value=0, inplace=True)
 df['head_image_url'] = df['head_image_url'].map(
@@ -73,9 +66,71 @@ df['head_image_url'] = df['head_image_url'].map(
 
 df['share_callback'] = np.where(df['share_callback'] < 1, 0, 1)
 df['tag'] = np.where(df['tag'].str.match('new'), 1, 0)
+df['phone_book'].fillna(value=0, inplace=True)
+df['account_num'].fillna(value=0, inplace=True)
+
+df['cert_no'][df['cert_no'].isnull()] = df['card_id'][df['cert_no'].isnull()]
+# 有45个身份证号缺失但审核通过的订单， 舍弃不要。
+df = df[df['cert_no'].notnull()]
+# 根据身份证号增加性别和年龄 年龄的计算需根据订单创建日期计算
+df['age'] = df['cert_no'].str.slice(6, 10)
+df['sex'] = df['cert_no'].str.slice(-2, -1)
+
+# df['phone'].fillna(value=0, inplace=True)
+# df['phone'] = df['phone'].astype(str)
+# df['phone'][df['phone'].str.len() != 11] = '0'
+# df['phone'] = df['phone'].str.slice(0, 3)
+
+
+# 处理芝麻信用分 '>600' 更改成600
+# zmf = [0.] * len(df)
+# xbf = [0.] * len(df)
+# for row, detail in enumerate(df['zmxy_score'].tolist()):
+#     # print(row, detail)
+#     if isinstance(detail, str):
+#         if '/' in detail:
+#             score = detail.split('/')
+#             xbf[row] = 0 if score[0] == '' else (float(score[0]))
+#             zmf[row] = 0 if score[1] == '' else (float(score[1]))
+#         # print(score, row)
+#         elif '>' in detail:
+#             zmf[row] = 600
+#         else:
+#             score = float(detail)
+#             if score <= 200:
+#                 xbf[row] = score
+#             else:
+#                 zmf[row] = score
+#
+# df['zmf'] = zmf
+# df['xbf'] = xbf
+# zmf_most = df['zmf'][df['zmf'] > 0].value_counts().index[0]
+# xbf_most = df['xbf'][df['xbf'] > 0].value_counts().index[0]
+# df['zmf'][df['zmf'] == 0] = zmf_most
+# df['xbf'][df['xbf'] == 0] = xbf_most
+#
+# df.drop(labels=[ 'zmxy_score'], axis=1, inplace=True, errors='ignore')
+
+'''
+feature = 'phone'
+df[feature].value_counts()
+feature_analyse(df, feature, bins=50)
+df[feature].dtype
+df[df[feature].isnull()].sort_values(by='target').shape
+df.shape
+df[feature].unique()
+df.columns.values
 missing_values_table(df)
 
-df.drop(['order_id', 'user_id'], axis=1, inplace=True, errors='ignore')
+
+'''
+df.drop(['cert_no_expiry_date', 'regist_useragent', 'cert_no_json', 'bai_qi_shi_detail_json',
+         'guanzhu_detail_json', 'mibao_detail_json', 'tongdun_detail_json'],
+        axis=1, inplace=True, errors='ignore')
+
+missing_values_table(df)
+# In[1]
+df.drop(['order_id', 'user_id', 'mibao_result', 'card_id', 'state'], axis=1, inplace=True, errors='ignore')
 # 把createtime分成月日周。 order_id =9085, 9098的crate_time 是错误的
 df = df[df['create_time'] > '2016']
 es = ft.EntitySet(id='date')
@@ -86,20 +141,10 @@ feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_de
 df = feature_matrix
 print("保存的数据量: {}".format(df.shape))
 df.to_csv(datasets_path + "mibaodata_ml.csv", index=False)
+# In[1]
 exit('dm')
 # merchant 违约率 todo
-'''
-feature = 'result'
-df[feature].value_counts()
-df[feature].fillna(value=-999, inplace=True)
-feature_analyse(df, feature)
-df[df[feature].isnull()].sort_values(by='state').shape
-df.shape
-missing_values_table(df)
-df[feature].unique()
-df.columns.values
-missing_values_table(all_data_df)
-'''
+
 
 # 读取并处理表user
 
@@ -115,7 +160,6 @@ es = es.entity_from_dataframe(entity_id='date', dataframe=tmp_df, index='order_i
 default_trans_primitives = ["day", "month", "weekday", "hour"]
 feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1,
                                       trans_primitives=default_trans_primitives, )
-
 
 # merchant 违约率
 df.drop(['user_id', ], axis=1, inplace=True, errors='ignore')
@@ -173,9 +217,10 @@ features_cat = ['check_result', 'result', 'pay_num', 'channel', 'goods_type', 'l
 features_number = ['cost', 'daily_rent', 'price', 'age', 'zmf_score', 'xbf_score', ]
 
 for col in df[features_cat + features_number].columns.values:
-    if df[col].dtype == 'O':
-        df[col].fillna(value='NODATA', inplace=True)
-        df.fillna(value=0, inplace=True)
+    if
+df[col].dtype == 'O':
+df[col].fillna(value='NODATA', inplace=True)
+df.fillna(value=0, inplace=True)
 
 plt.hist(df['check_result'])
 feature_analyse(df, 'result')

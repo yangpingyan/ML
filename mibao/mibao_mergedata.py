@@ -1,6 +1,8 @@
 # coding: utf-8
 
 import csv
+import json
+
 import pandas as pd
 import numpy as np
 import os
@@ -30,7 +32,7 @@ df = df[['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'instal
          'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
          'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
          'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
-         'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason',]]
+         'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way' ]]
 df.rename(columns={'id': 'order_id'}, inplace=True)
 
 # 根据state生成TARGET，代表最终审核是否通过
@@ -60,13 +62,13 @@ df = df[df['cancel_reason'].str.contains('测试') != True]
 # 去除命中商户白名单的订单
 df = df[df['hit_merchant_white_list'].str.contains('01') != True]
 
-df.drop(['state', 'cancel_reason', 'hit_merchant_white_list'], axis=1, inplace=True, errors='ignore')
+df.drop(['cancel_reason', 'hit_merchant_white_list'], axis=1, inplace=True, errors='ignore')
 all_data_df = df.copy()
 
 # 读取并处理表user
 df = pd.read_csv(datasets_path + "user.csv")
-df = df[['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag']]
-df.rename(columns={'id': 'user_id'}, inplace=True)
+df = df[['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']]
+df.rename(columns={'id': 'user_id', 'phone': 'phone_user'}, inplace=True)
 all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 
 # 读取并处理表 bargain_help
@@ -88,45 +90,30 @@ all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 # 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address', 'live_address'
 df = pd.read_csv(datasets_path + "order_express.csv")
 df = df[['order_id', 'zmxy_score', 'card_id', 'phone', 'company', ]]
-# 处理芝麻信用分 '>600' 更改成600
-zmf = [0.] * len(df)
-xbf = [0.] * len(df)
-for row, detail in enumerate(df['zmxy_score'].tolist()):
-    # print(row, detail)
-    if isinstance(detail, str):
-        if '/' in detail:
-            score = detail.split('/')
-            xbf[row] = 0 if score[0] == '' else (float(score[0]))
-            zmf[row] = 0 if score[1] == '' else (float(score[1]))
-        # print(score, row)
-        elif '>' in detail:
-            zmf[row] = 600
-        else:
-            score = float(detail)
-            if score <= 200:
-                xbf[row] = score
-            else:
-                zmf[row] = score
-
-df['zmf'] = zmf
-df['xbf'] = xbf
-zmf_most = df['zmf'][df['zmf'] > 0].value_counts().index[0]
-xbf_most = df['xbf'][df['xbf'] > 0].value_counts().index[0]
-df['zmf'][df['zmf'] == 0] = zmf_most
-df['xbf'][df['xbf'] == 0] = xbf_most
-# 根据身份证号增加性别和年龄 年龄的计算需根据订单创建日期计算
-df['age'] = df['card_id'].map(lambda x: 2018 - int(x[6:10]))
-df['sex'] = df['card_id'].map(lambda x: int(x[-2]) % 2)
-df['phone'] = df['phone'].astype(str)
-df['phone'][df['phone'].str.len() != 11] = '0'
-df['phone'] = df['phone'].str.slice(0, 3)
-df.drop(labels=['card_id', 'zmxy_score'], axis=1, inplace=True, errors='ignore')
 all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
+
+# 读取并处理表 order_detail
+df = pd.read_csv(datasets_path + "order_detail.csv")
+df = df[['order_id', 'order_detail' ]]
+all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
+
+df[df[feature].isnull()].sort_values(by='target').shape
+
+all_data_df[all_data_df['zmxy_score'].isnull()] #3296
 # 读取并处理表 order_phone_book
-# 未处理特征：
+def count_name_nums(data):
+    data_list = json.loads(data)
+    name_list = []
+    for phone_book in data_list:
+        if len(phone_book.get('name')) > 0 and phone_book.get('name').isdigit() is False:
+            name_list.append(phone_book.get('name'))
+
+    return len(set(name_list))
+
+
 df = pd.read_csv(datasets_path + "order_phone_book.csv")
 df = df[['order_id', 'emergency_contact_name', 'phone_book', 'emergency_contact_phone', 'emergency_contact_relation']]
-df['phone_book'] = df['phone_book'].str.count('mobile')
+df['phone_book'] = df['phone_book'].map(count_name_nums)
 all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
 # 读取并处理表 order_goods
@@ -149,10 +136,9 @@ df = df[['order_id', 'type', 'result', 'detail_json', ]]
 df['result'] = df['result'].str.lower()
 
 for risk_type in df['type'].unique().tolist():
-    tmp_df = df[df['type'].str.match(risk_type)]
+    tmp_df = df[df['type'].str.match(risk_type)][['order_id','result', 'detail_json']]
     tmp_df.rename(
-        columns={'type': risk_type + '_type', 'result': risk_type + '_result',
-                 'detail_json': risk_type + '_detail_json'},
+        columns={'result': risk_type + '_result', 'detail_json': risk_type + '_detail_json'},
         inplace=True)
     all_data_df = pd.merge(all_data_df, tmp_df, on='order_id', how='left')
 
@@ -165,15 +151,15 @@ all_data_df = all_data_df[all_data_df['user_id'].isin(user_ids) != True]
 # 读取并处理表 user_credit
 # 未处理特征：
 df = pd.read_csv(datasets_path + "user_credit.csv")
-df = df[['user_id', 'cert_no', 'workplace', 'idcard_pros', 'idcard_cons',
-         'occupational_identity_type', 'company_phone', 'cert_no_expiry_date', 'cert_no_json', ]]
+df = df[['user_id', 'cert_no', 'workplace', 'idcard_pros', 'occupational_identity_type', 'company_phone',
+         'cert_no_expiry_date', 'cert_no_json', ]]
 all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 
 # 读取并处理表 user_device
-# 未处理特征： 判断user_id是不是只有1条
+# 未处理特征：
 df = pd.read_csv(datasets_path + "user_device.csv")
 df = df[['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type']]
-df.rename(columns={'device_type':'device_type_os'}, inplace=True)
+df.rename(columns={'device_type': 'device_type_os'}, inplace=True)
 all_data_df = pd.merge(all_data_df, df, on='user_id', how='left')
 
 # 读取并处理表 user_third_party_account
@@ -203,8 +189,8 @@ df[feature].unique()
 df.columns.values
 missing_values_table(all_data_df)
 '''
-
 # 保存数据
+all_data_df.drop(['mibao_result'], axis=1, inplace=True, errors='ignore')
 missing_values_table(all_data_df)
 all_data_df.to_csv(datasets_path + "mibao.csv", index=False)
 print("mibao.csv saved with shape {}".format(all_data_df.shape))

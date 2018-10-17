@@ -71,17 +71,16 @@ def missing_values_table(df):
     mis_val_percent = 100 * df.isnull().sum() / len(df)
     missing_df = pd.DataFrame({'missing_percent': mis_val_percent})
     missing_df = missing_df[missing_df['missing_percent']>0]
-    missing_df.sort_values(by='missing_percent', inplace=True, ascending=False)
-    print(missing_df)
+    missing_df.sort_values(by='missing_percent', inplace=True, ascending=True)
     return missing_df
 
 
 # 特征分析
 def feature_analyse(df, feature, label='target', bins=10):
-    print("dtype of {} is {}.".format(feature, df[feature].dtype))
+    print("dtype: {}.".format(df[feature].dtype))
+    df[feature].fillna(value='NODATA' if df[feature].dtype == 'O' else 0, inplace=True)
+
     print(df[feature].notnull().value_counts())
-    print("-------------------------------------------")
-    print(df[feature].value_counts())
     print("-------------------------------------------")
     # if df[feature].dtype != 'object':
     #     plt.figure()
@@ -96,8 +95,7 @@ def feature_analyse(df, feature, label='target', bins=10):
     else:
         col_ana = feature
 
-    print(df[col_ana].describe())
-    print("-------------------------------------------")
+
     pass_df = pd.DataFrame({'positive': df[df[label] == 1][col_ana].value_counts()})
     reject_df = pd.DataFrame({'negative': df[df[label] == 0][col_ana].value_counts()})
     all_df = pd.DataFrame({'all': df[col_ana].value_counts()})
