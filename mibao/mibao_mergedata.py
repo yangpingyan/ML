@@ -32,7 +32,7 @@ df = df[['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'instal
          'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
          'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
          'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
-         'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way' ]]
+         'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way']]
 df.rename(columns={'id': 'order_id'}, inplace=True)
 
 # 根据state生成TARGET，代表最终审核是否通过
@@ -90,16 +90,18 @@ all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 # 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address', 'live_address'
 df = pd.read_csv(datasets_path + "order_express.csv")
 df = df[['order_id', 'zmxy_score', 'card_id', 'phone', 'company', ]]
+df.drop_duplicates(subset='order_id', inplace=True)
 all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
 # 读取并处理表 order_detail
 df = pd.read_csv(datasets_path + "order_detail.csv")
-df = df[['order_id', 'order_detail' ]]
+df = df[['order_id', 'order_detail']]
+df['xiaobaiScore'] = df['order_detail'].map(lambda x: json.loads(x).get('xiaobaiScore'))
+df['zmxyScore'] = df['order_detail'].map(lambda x: json.loads(x).get('zmxyScore'))
+df.drop(labels='order_detail', axis=1, inplace=True)
 all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
-df[df[feature].isnull()].sort_values(by='target').shape
 
-all_data_df[all_data_df['zmxy_score'].isnull()] #3296
 # 读取并处理表 order_phone_book
 def count_name_nums(data):
     data_list = json.loads(data)
@@ -120,6 +122,7 @@ all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 # 未处理特征：
 df = pd.read_csv(datasets_path + "order_goods.csv")
 df = df[['order_id', 'num', 'price', 'category', 'old_level', ]]
+df.drop_duplicates(subset='order_id', inplace=True)
 all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
 # 读取并处理表 order_xinyongzu
@@ -136,7 +139,7 @@ df = df[['order_id', 'type', 'result', 'detail_json', ]]
 df['result'] = df['result'].str.lower()
 
 for risk_type in df['type'].unique().tolist():
-    tmp_df = df[df['type'].str.match(risk_type)][['order_id','result', 'detail_json']]
+    tmp_df = df[df['type'].str.match(risk_type)][['order_id', 'result', 'detail_json']]
     tmp_df.rename(
         columns={'result': risk_type + '_result', 'detail_json': risk_type + '_detail_json'},
         inplace=True)

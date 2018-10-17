@@ -45,7 +45,7 @@ df = all_data_df.copy()
 features_cat = ['installment', 'commented', 'type', 'source', 'disposable_payment_enabled', 'merchant_store_id',
                 'device_type', 'goods_type', 'merchant_id', 'order_type', 'regist_channel_type', 'face_check',
                 'face_live_check', 'occupational_identity_type', 'ingress_type', 'device_type_os', 'bai_qi_shi_result',
-                'guanzhu_result', 'tongdun_result', 'delivery_way']
+                'guanzhu_result', 'tongdun_result', 'delivery_way', 'old_level', 'category', ]
 for feature in features_cat:
     df[feature].fillna(value='NODATA' if df[feature].dtype == 'O' else -999, inplace=True)
     df[feature] = LabelEncoder().fit_transform(df[feature])
@@ -75,41 +75,67 @@ df = df[df['cert_no'].notnull()]
 # 根据身份证号增加性别和年龄 年龄的计算需根据订单创建日期计算
 df['age'] = df['cert_no'].str.slice(6, 10)
 df['sex'] = df['cert_no'].str.slice(-2, -1)
-
-# df['phone'].fillna(value=0, inplace=True)
-# df['phone'] = df['phone'].astype(str)
-# df['phone'][df['phone'].str.len() != 11] = '0'
-# df['phone'] = df['phone'].str.slice(0, 3)
-
+# 取phone前3位
+df['phone'][df['phone'].isnull()] = df['phone_user'][df['phone'].isnull()]
+df['phone'].fillna(value=0, inplace=True)
+df['phone'] = df['phone'].astype(str)
+df['phone'][df['phone'].str.len() != 11] = '0'
+df['phone'] = df['phone'].str.slice(0, 3)
 
 # 处理芝麻信用分 '>600' 更改成600
-# zmf = [0.] * len(df)
-# xbf = [0.] * len(df)
-# for row, detail in enumerate(df['zmxy_score'].tolist()):
-#     # print(row, detail)
-#     if isinstance(detail, str):
-#         if '/' in detail:
-#             score = detail.split('/')
-#             xbf[row] = 0 if score[0] == '' else (float(score[0]))
-#             zmf[row] = 0 if score[1] == '' else (float(score[1]))
-#         # print(score, row)
-#         elif '>' in detail:
-#             zmf[row] = 600
-#         else:
-#             score = float(detail)
-#             if score <= 200:
-#                 xbf[row] = score
-#             else:
-#                 zmf[row] = score
-#
-# df['zmf'] = zmf
-# df['xbf'] = xbf
-# zmf_most = df['zmf'][df['zmf'] > 0].value_counts().index[0]
-# xbf_most = df['xbf'][df['xbf'] > 0].value_counts().index[0]
-# df['zmf'][df['zmf'] == 0] = zmf_most
-# df['xbf'][df['xbf'] == 0] = xbf_most
-#
-# df.drop(labels=[ 'zmxy_score'], axis=1, inplace=True, errors='ignore')
+zmf = [0] * len(df)
+xbf = [0] * len(df)
+for row, detail in enumerate(df['zmxy_score'].tolist()):
+    # print(row, detail)
+    if isinstance(detail, str):
+        if '/' in detail:
+            score = detail.split('/')
+            xbf[row] = 0 if score[0] == '' else (float(score[0]))
+            zmf[row] = 0 if score[1] == '' else (float(score[1]))
+        # print(score, row)
+        elif '>' in detail:
+            zmf[row] = 600
+        else:
+            score = float(detail)
+            if score <= 200:
+                xbf[row] = score
+            else:
+                zmf[row] = score
+
+df['zmf'] = zmf
+df['xbf'] = xbf
+
+df['zmf'][df['zmf'] == 0] = df['zmxyScore'][df['zmf'] == 0]  # 26623
+df['xbf'][df['xbf'] == 0] = df['xiaobaiScore'][df['xbf'] == 0]  # 26623
+df['zmf'].fillna(value=0, inplace=True)
+df['xbf'].fillna(value=0, inplace=True)
+zmf_most = df['zmf'][df['zmf'] > 0].value_counts().index[0]
+xbf_most = df['xbf'][df['xbf'] > 0].value_counts().index[0]
+df['zmf'][df['zmf'] == 0] = zmf_most
+df['xbf'][df['xbf'] == 0] = xbf_most
+
+# order_id =9085, 9098的crate_time 是错误的
+df = df[df['create_time'] > '2016']
+# 把createtime分成月周日小时
+# df['create_time'] = pd.to_datetime(df['create_time'])
+ft_df = df[['order_id', 'create_time']]
+es = ft.EntitySet(id='date')
+es = es.entity_from_dataframe(entity_id='date', dataframe=ft_df, index='order_id')
+default_trans_primitives = ["day", "month", "weekday", "hour"]
+feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1,
+                                      trans_primitives=default_trans_primitives )
+# feature_matrix['order_id'] = df['order_id']
+df = pd.merge(df, feature_matrix, left_on='order_id', right_index=True, how='left')
+
+df.drop(['cert_no_expiry_date', 'regist_useragent', 'cert_no_json', 'bai_qi_shi_detail_json',
+         'guanzhu_detail_json', 'mibao_detail_json', 'tongdun_detail_json'],
+        axis=1, inplace=True, errors='ignore')
+
+df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'create_time', 'cert_no'], axis=1, inplace=True,
+        errors='ignore')
+
+missing_values_table(df)
+# In[1]
 
 '''
 feature = 'phone'
@@ -121,51 +147,15 @@ df.shape
 df[feature].unique()
 df.columns.values
 missing_values_table(df)
-
-
 '''
-df.drop(['cert_no_expiry_date', 'regist_useragent', 'cert_no_json', 'bai_qi_shi_detail_json',
-         'guanzhu_detail_json', 'mibao_detail_json', 'tongdun_detail_json'],
-        axis=1, inplace=True, errors='ignore')
 
-missing_values_table(df)
-# In[1]
-df.drop(['order_id', 'user_id', 'mibao_result', 'card_id', 'state'], axis=1, inplace=True, errors='ignore')
-# 把createtime分成月日周。 order_id =9085, 9098的crate_time 是错误的
-df = df[df['create_time'] > '2016']
-es = ft.EntitySet(id='date')
-es = es.entity_from_dataframe(entity_id='date', dataframe=df, index='order_id')
-default_trans_primitives = ["day", "month", "weekday", "hour"]
-feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1,
-                                      trans_primitives=default_trans_primitives, )
-df = feature_matrix
-print("保存的数据量: {}".format(df.shape))
+df.drop(['order_id', 'user_id', 'state'], axis=1, inplace=True, errors='ignore')
+
 df.to_csv(datasets_path + "mibaodata_ml.csv", index=False)
+print("mibaodata_ml.csv保存的数据量: {}".format(df.shape))
 # In[1]
-exit('dm')
+
 # merchant 违约率 todo
-
-
-# 读取并处理表user
-
-
-# 读取并处理表 bargain_help
-
-
-# 把createtime分成月日周。 order_id =9085, 9098的crate_time 是错误的
-tmp_df = df[['order_id', 'create_time']]
-tmp_df = tmp_df[tmp_df['create_time'] > '2016']
-es = ft.EntitySet(id='date')
-es = es.entity_from_dataframe(entity_id='date', dataframe=tmp_df, index='order_id')
-default_trans_primitives = ["day", "month", "weekday", "hour"]
-feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1,
-                                      trans_primitives=default_trans_primitives, )
-
-# merchant 违约率
-df.drop(['user_id', ], axis=1, inplace=True, errors='ignore')
-print("保存的数据量: {}".format(df.shape))
-df.to_csv(datasets_path + "mibaodata_ml.csv", index=False)
-
 # 查看各特征关联度
 plt.figure(figsize=(14, 12))
 plt.title('Pearson Correlation of Features', y=1.05, size=15)
@@ -196,41 +186,6 @@ missing_values_table(df)
  b. 创造未被保存到数据库中的特征：年化利率,是否有2个手机号。
 '''
 
-# 所有字符串变成大写字母
-objs_df = pd.DataFrame({"isobj": pd.Series(df.dtypes == 'object')})
-df[objs_df[objs_df['isobj'] == True].index.values] = df[objs_df[objs_df['isobj'] == True].index.values].applymap(
-    lambda x: x.upper() if isinstance(x, str) else x)
-
-# 有phone_book的赋值成1， 空的赋值成0
-df['phone_book'][df['phone_book'].notnull()] = 1
-df['phone_book'][df['phone_book'].isnull()] = 0
-
-# 同盾白骑士审核结果统一
-df['result'] = df['result'].map(lambda x: x.upper() if isinstance(x, str) else 'NODATA')
-df['result'][df['result'].str.match('ACCEPT')] = 'PASS'
-# 有emergency_contact_phone的赋值成1， 空的赋值成0
-df['emergency_contact_phone'][df['emergency_contact_phone'].notnull()] = 1
-df['emergency_contact_phone'][df['emergency_contact_phone'].isnull()] = 0
-
-features_cat = ['check_result', 'result', 'pay_num', 'channel', 'goods_type', 'lease_term', 'type', 'order_type',
-                'source', 'phone_book', 'emergency_contact_phone', 'old_level', 'create_hour', 'sex', ]
-features_number = ['cost', 'daily_rent', 'price', 'age', 'zmf_score', 'xbf_score', ]
-
-for col in df[features_cat + features_number].columns.values:
-    if
-df[col].dtype == 'O':
-df[col].fillna(value='NODATA', inplace=True)
-df.fillna(value=0, inplace=True)
-
-plt.hist(df['check_result'])
-feature_analyse(df, 'result')
-feature_analyse(df, 'pay_num')
-feature_analyse(df, 'channel')
-
-feature = 'zmf_score'
-plt.hist(df[feature])
-feature_analyse(df, feature)
-feature_kdeplot(df, feature)
 
 # 芝麻分分类
 bins = pd.IntervalIndex.from_tuples([(0, 600), (600, 700), (700, 800), (800, 1000)])
