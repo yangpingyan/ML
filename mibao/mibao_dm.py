@@ -1,21 +1,17 @@
 # coding: utf-8
 
 import csv
-import json
 import seaborn as sns
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
-import time
 import os
 from sklearn.preprocessing import LabelEncoder
-# Suppress warnings
 import warnings
 from mlutils import *
 import featuretools as ft
-import operator
 
+# Suppress warnings
 warnings.filterwarnings('ignore')
 # to make output display better
 pd.set_option('display.max_columns', 10)
@@ -39,7 +35,6 @@ all_data_df = pd.read_csv(datasets_path + "mibao.csv", encoding='utf-8', engine=
 df = all_data_df.copy()
 print("data shape {}".format(all_data_df.shape))
 
-df = all_data_df.copy()
 # 开始处理特征
 # 类别特征处理
 features_cat = ['installment', 'commented', 'type', 'source', 'disposable_payment_enabled', 'merchant_store_id',
@@ -123,7 +118,7 @@ es = ft.EntitySet(id='date')
 es = es.entity_from_dataframe(entity_id='date', dataframe=ft_df, index='order_id')
 default_trans_primitives = ["day", "month", "weekday", "hour"]
 feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1,
-                                      trans_primitives=default_trans_primitives )
+                                      trans_primitives=default_trans_primitives)
 # feature_matrix['order_id'] = df['order_id']
 df = pd.merge(df, feature_matrix, left_on='order_id', right_index=True, how='left')
 
@@ -131,7 +126,8 @@ df.drop(['cert_no_expiry_date', 'regist_useragent', 'cert_no_json', 'bai_qi_shi_
          'guanzhu_detail_json', 'mibao_detail_json', 'tongdun_detail_json'],
         axis=1, inplace=True, errors='ignore')
 
-df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'create_time', 'cert_no'], axis=1, inplace=True,
+df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'create_time', 'cert_no'], axis=1,
+        inplace=True,
         errors='ignore')
 
 missing_values_table(df)
@@ -185,7 +181,6 @@ missing_values_table(df)
 
  b. 创造未被保存到数据库中的特征：年化利率,是否有2个手机号。
 '''
-
 
 # 芝麻分分类
 bins = pd.IntervalIndex.from_tuples([(0, 600), (600, 700), (700, 800), (800, 1000)])

@@ -45,8 +45,8 @@ alldata_df = pd.read_csv("{}mibaodata_ml.csv".format(datasets_path), encoding='u
 print("初始数据量: {}".format(alldata_df.shape))
 
 df = alldata_df.copy()
-x = df.drop(['TARGET'], axis=1)
-y = df['TARGET']
+x = df.drop(['target'], axis=1)
+y = df['target']
 ## Splitting the dataset into the Training set and Test set
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1, random_state=88)
 
@@ -66,17 +66,16 @@ classifiers = [
     Perceptron(),
     XGBClassifier()]
 
-score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
 for model in classifiers:
     print("Running ", model.__class__.__name__)
     model.fit(x_train, y_train)
     y_pred = model.predict(x_test)
-    add_score(score_df, model.__class__.__name__, y_pred, y_test)
+    score_df = add_score( model.__class__.__name__, y_pred, y_test)
 
     break
 
 print(score_df)
-
+# In[1]
 # ## LightGBM with cross validation
 def lgb_objective(hyperparameters, iteration):
     """Objective function for grid and random search. Returns
@@ -111,7 +110,7 @@ print('The cross-validation ROC AUC was {:.5f}.'.format(score))
 lgb_clf = lgb.LGBMClassifier(**params_best)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-add_score(score_df, lgb_clf.__class__.__name__+'_cv', y_pred, y_test)
+add_score(lgb_clf.__class__.__name__+'_cv', y_pred, y_test)
 
 # LightBGM with Random Search
 param_grid = {
@@ -152,8 +151,9 @@ print(importance_df)
 lgb_clf = rnd_search.best_estimator_
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-add_score(score_df, lgb_clf.__class__.__name__ + '_random_search', y_pred, y_test)
-
+score_df = add_score(lgb_clf.__class__.__name__ + '_random_search', y_pred, y_test)
+print(score_df)
+# In[2]
 
 def lgb_random_search(max_evals=5):
     """Random search for hyperparameter optimization"""
