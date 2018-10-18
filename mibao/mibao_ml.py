@@ -29,7 +29,7 @@ import random
 
 # to make output display better
 pd.set_option('display.max_columns', 50)
-pd.set_option('display.max_rows', 50)
+pd.set_option('display.max_rows', 70)
 pd.set_option('display.width', 1000)
 plt.rcParams['axes.labelsize'] = 14
 plt.rcParams['xtick.labelsize'] = 12
@@ -125,6 +125,7 @@ def lgb_objective(hyperparameters, iteration):
         del hyperparameters['n_estimators']
 
     # Perform n_folds cross validation
+    # param['metric'] = ['auc', 'binary_logloss']
     cv_results = lgb.cv(hyperparameters, train_set, num_boost_round=10000, nfold=5,
                         early_stopping_rounds=100, metrics='auc', seed=42)
 
@@ -157,12 +158,16 @@ importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
 print(importance_df)
 print(score_df)
 
+# In[1]
+
+'''
 #  lgb best score : 0.931343， 0.833524
-# accuracy                             0.92773
-# precision                           0.795843
-# recall                              0.852824
-# f1                                  0.823349
-# In[]
+accuracy                            0.929458
+precision                            0.79807
+recall                              0.858626
+f1                                  0.827241
+'''
+
 # LightBGM with Random Search
 param_grid = {
     'boosting_type': ['gbdt', 'goss', 'dart'],

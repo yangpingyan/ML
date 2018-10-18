@@ -112,10 +112,17 @@ df['zmf'][df['zmf'] == 0] = zmf_most
 df['xbf'][df['xbf'] == 0] = xbf_most
 
 # 芝麻分分类
-bins = pd.IntervalIndex.from_tuples([(0, 600), (600, 700), (700, 800), (800, 1000)])
-df['zmf'] = pd.cut(df['zmf'], bins, labels=False)
-df[['zmf', 'target']].groupby(['zmf'], as_index=False).mean().sort_values(by='target', ascending=False)
-df['zmf'] = LabelEncoder().fit_transform(df['zmf'])
+# bins = pd.IntervalIndex.from_tuples([(0, 600), (600, 700), (700, 800), (800, 1000)])
+# df['zmf'] = pd.cut(df['zmf'], bins, labels=False)
+# df[['zmf', 'target']].groupby(['zmf'], as_index=False).mean().sort_values(by='target', ascending=False)
+# df['zmf'] = LabelEncoder().fit_transform(df['zmf'])
+
+bins = pd.IntervalIndex.from_tuples([(0, 80), (80, 90), (90, 100), (100, 200)])
+df['xbf'] = pd.cut(df['xbf'], bins, labels=False)
+df[['xbf', 'target']].groupby(['xbf'], as_index=False).mean().sort_values(by='target', ascending=False)
+df['xbf'] = LabelEncoder().fit_transform(df['xbf'])
+
+
 # order_id =9085, 9098的crate_time 是错误的
 df = df[df['create_time'] > '2016']
 # 把createtime分成月周日小时
@@ -167,29 +174,30 @@ print("mibaodata_ml.csv保存的数据量: {}".format(df.shape))
 # 查看各特征关联度
 features = ['target',
             'pay_num', 'merchant_store_id', 'merchant_id',
-            'installment',
             'added_service', 'bounds_example_id', 'bounds_example_no',
             'goods_type', 'commented', 'accident_insurance',
             'type', 'order_type', 'device_type', 'source', 'distance',
             'disposable_payment_discount', 'disposable_payment_enabled',
-            #  'deposit', 'fingerprint',
-            # 'delivery_way', 'head_image_url', 'recommend_code',
-            # 'regist_channel_type', 'share_callback', 'tag',
-            # 'have_bargain_help', 'face_check', 'face_live_check',
-            # 'company', 'emergency_contact_name', 'phone_book','phone',
-            # 'emergency_contact_phone', 'emergency_contact_relation', 'num',
-            # 'category', 'old_level', 'tongdun_result',
-            # 'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
-            # 'occupational_identity_type', 'company_phone', 'device_type_os',
-            # 'regist_device_info', 'ingress_type', 'account_num',
-            # 'zhima_cert_result', 'age', 'sex', 'zmf', 'xbf',
+             'deposit', 'fingerprint',
+            'delivery_way', 'head_image_url', 'recommend_code',
+            'regist_channel_type', 'share_callback', 'tag',
+            'have_bargain_help', 'face_check', 'face_live_check',
+            'company', 'emergency_contact_name', 'phone_book','phone',
+            'emergency_contact_phone', 'emergency_contact_relation', 'num',
+            'category', 'old_level', 'tongdun_result',
+            'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
+            'occupational_identity_type', 'company_phone', 'device_type_os',
+            'regist_device_info', 'ingress_type', 'account_num',
+            'zhima_cert_result',
             # 数值类型需转换
             # 'price', 'cost',
             # 实际场景效果不好的特征 # 0.971， 0.930
             ]
+corr_df = df[features].astype(float).corr()
+corr_df = corr_df.applymap(lambda x: 0 if abs(x)<0.4 else x)
 plt.figure(figsize=(14, 12))
 plt.title('Pearson Correlation of Features', y=1.05, size=15)
-sns.heatmap(df[features].astype(float).corr(), linewidths=0.1, vmax=1.0,
+sns.heatmap(corr_df, linewidths=0.1, vmax=1.0,
             square=True, cmap=plt.cm.RdBu, linecolor='white', annot=True)
 plt.show()
 # In[]
