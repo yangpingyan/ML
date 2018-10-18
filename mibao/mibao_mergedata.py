@@ -121,7 +121,7 @@ all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 # 读取并处理表 order_goods
 # 未处理特征：
 df = pd.read_csv(datasets_path + "order_goods.csv")
-df = df[['order_id', 'num', 'price', 'category', 'old_level', ]]
+df = df[['order_id', 'price', 'category', 'old_level', ]]
 df.drop_duplicates(subset='order_id', inplace=True)
 all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 

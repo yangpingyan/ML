@@ -15,7 +15,7 @@ import featuretools as ft
 warnings.filterwarnings('ignore')
 # to make output display better
 pd.set_option('display.max_columns', 10)
-pd.set_option('display.max_rows', 10)
+pd.set_option('display.max_rows', 50)
 pd.set_option('display.width', 2000)
 plt.rcParams['axes.labelsize'] = 14
 plt.rcParams['xtick.labelsize'] = 12
@@ -31,7 +31,7 @@ if os.getcwd().find(PROJECT_ID) == -1:
     os.chdir(PROJECT_ID)
 datasets_path = os.getcwd() + '\\datasets\\'
 all_data_df = pd.read_csv(datasets_path + "mibao.csv", encoding='utf-8', engine='python')
-
+# In[]
 df = all_data_df.copy()
 print("data shape {}".format(all_data_df.shape))
 
@@ -67,16 +67,18 @@ df['account_num'].fillna(value=0, inplace=True)
 df['cert_no'][df['cert_no'].isnull()] = df['card_id'][df['cert_no'].isnull()]
 # 有45个身份证号缺失但审核通过的订单， 舍弃不要。
 df = df[df['cert_no'].notnull()]
-# 根据身份证号增加性别和年龄 年龄的计算需根据订单创建日期计算
-df['age'] = df['cert_no'].str.slice(6, 10)
-df['sex'] = df['cert_no'].str.slice(-2, -1)
+
 # 取phone前3位
 df['phone'][df['phone'].isnull()] = df['phone_user'][df['phone'].isnull()]
-df['phone'].fillna(value=0, inplace=True)
+df['phone'].fillna(value='0', inplace=True)
 df['phone'] = df['phone'].astype(str)
 df['phone'][df['phone'].str.len() != 11] = '0'
 df['phone'] = df['phone'].str.slice(0, 3)
+phones_few = ['143', '106', '478', '162', '812', '165', '163', '196', '179', ]
+df['phone'][df['phone'].isin(phones_few)] = '0'
+df['phone'] = LabelEncoder().fit_transform(df['phone'])
 
+df[df['phone'].isin(['171', '198'])]['target'].value_counts()
 # 处理芝麻信用分 '>600' 更改成600
 zmf = [0] * len(df)
 xbf = [0] * len(df)
@@ -109,6 +111,11 @@ xbf_most = df['xbf'][df['xbf'] > 0].value_counts().index[0]
 df['zmf'][df['zmf'] == 0] = zmf_most
 df['xbf'][df['xbf'] == 0] = xbf_most
 
+# 芝麻分分类
+bins = pd.IntervalIndex.from_tuples([(0, 600), (600, 700), (700, 800), (800, 1000)])
+df['zmf'] = pd.cut(df['zmf'], bins, labels=False)
+df[['zmf', 'target']].groupby(['zmf'], as_index=False).mean().sort_values(by='target', ascending=False)
+df['zmf'] = LabelEncoder().fit_transform(df['zmf'])
 # order_id =9085, 9098的crate_time 是错误的
 df = df[df['create_time'] > '2016']
 # 把createtime分成月周日小时
@@ -116,25 +123,30 @@ df = df[df['create_time'] > '2016']
 ft_df = df[['order_id', 'create_time']]
 es = ft.EntitySet(id='date')
 es = es.entity_from_dataframe(entity_id='date', dataframe=ft_df, index='order_id')
-default_trans_primitives = ["day", "month", "weekday", "hour"]
+default_trans_primitives = ["day", "month", "weekday", "hour", "year"]
 feature_matrix, feature_defs = ft.dfs(entityset=es, target_entity="date", max_depth=1,
                                       trans_primitives=default_trans_primitives)
+
 # feature_matrix['order_id'] = df['order_id']
 df = pd.merge(df, feature_matrix, left_on='order_id', right_index=True, how='left')
 
+# 根据身份证号增加性别和年龄 年龄的计算需根据订单创建日期计算
+df['age'] = df['YEAR(create_time)'] - df['cert_no'].str.slice(6, 10).astype(int)
+df['sex'] = df['cert_no'].str.slice(-2, -1).astype(int) % 2
+
+# 未处理的特征
 df.drop(['cert_no_expiry_date', 'regist_useragent', 'cert_no_json', 'bai_qi_shi_detail_json',
          'guanzhu_detail_json', 'mibao_detail_json', 'tongdun_detail_json'],
         axis=1, inplace=True, errors='ignore')
-
+# 已使用的特征
 df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'create_time', 'cert_no'], axis=1,
-        inplace=True,
-        errors='ignore')
-
+        inplace=True, errors='ignore')
+# 与其他特征关联度过高的特征
+df.drop(['lease_num', 'install_ment'], axis=1,
+        inplace=True, errors='ignore')
 missing_values_table(df)
-# In[1]
-
 '''
-feature = 'phone'
+feature = 'age'
 df[feature].value_counts()
 feature_analyse(df, feature, bins=50)
 df[feature].dtype
@@ -144,6 +156,7 @@ df[feature].unique()
 df.columns.values
 missing_values_table(df)
 '''
+# merchant 违约率 todo
 
 df.drop(['order_id', 'user_id', 'state'], axis=1, inplace=True, errors='ignore')
 
@@ -151,14 +164,35 @@ df.to_csv(datasets_path + "mibaodata_ml.csv", index=False)
 print("mibaodata_ml.csv保存的数据量: {}".format(df.shape))
 # In[1]
 
-# merchant 违约率 todo
 # 查看各特征关联度
+features = ['target',
+            'pay_num', 'merchant_store_id', 'merchant_id',
+            'installment',
+            'added_service', 'bounds_example_id', 'bounds_example_no',
+            'goods_type', 'commented', 'accident_insurance',
+            'type', 'order_type', 'device_type', 'source', 'distance',
+            'disposable_payment_discount', 'disposable_payment_enabled',
+            #  'deposit', 'fingerprint',
+            # 'delivery_way', 'head_image_url', 'recommend_code',
+            # 'regist_channel_type', 'share_callback', 'tag',
+            # 'have_bargain_help', 'face_check', 'face_live_check',
+            # 'company', 'emergency_contact_name', 'phone_book','phone',
+            # 'emergency_contact_phone', 'emergency_contact_relation', 'num',
+            # 'category', 'old_level', 'tongdun_result',
+            # 'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
+            # 'occupational_identity_type', 'company_phone', 'device_type_os',
+            # 'regist_device_info', 'ingress_type', 'account_num',
+            # 'zhima_cert_result', 'age', 'sex', 'zmf', 'xbf',
+            # 数值类型需转换
+            # 'price', 'cost',
+            # 实际场景效果不好的特征 # 0.971， 0.930
+            ]
 plt.figure(figsize=(14, 12))
 plt.title('Pearson Correlation of Features', y=1.05, size=15)
-sns.heatmap(df.astype(float).corr(), linewidths=0.1, vmax=1.0,
+sns.heatmap(df[features].astype(float).corr(), linewidths=0.1, vmax=1.0,
             square=True, cmap=plt.cm.RdBu, linecolor='white', annot=True)
 plt.show()
-
+# In[]
 '''
 调试代码
 df.sort_values(by=['device_type'], inplace=True, axis=1)
@@ -182,12 +216,6 @@ missing_values_table(df)
  b. 创造未被保存到数据库中的特征：年化利率,是否有2个手机号。
 '''
 
-# 芝麻分分类
-bins = pd.IntervalIndex.from_tuples([(0, 600), (600, 700), (700, 800), (800, 1000)])
-df['zmf_score_band'] = pd.cut(df['zmf_score'], bins, labels=False)
-df[['zmf_score_band', 'check_result']].groupby(['zmf_score_band'], as_index=False).mean().sort_values(by='check_result',
-                                                                                                      ascending=False)
-
 # 小白分分类
 bins = pd.IntervalIndex.from_tuples([(0, 80), (80, 90), (90, 100), (100, 200)])
 df['xbf_score_band'] = pd.cut(df['xbf_score'], bins, labels=False)
@@ -204,14 +232,6 @@ df[['age_band', 'check_result']].groupby(['age_band'], as_index=False).mean().so
 df['create_hour_band'] = pd.cut(df['create_hour'], 5, labels=False)
 df[['create_hour_band', 'check_result']].groupby(['create_hour_band'], as_index=False).mean().sort_values(
     by='check_result', ascending=False)
-
-features = ['check_result', 'result', 'pay_num', 'channel', 'goods_type', 'type', 'order_type',
-            'source', 'phone_book', 'old_level', 'sex', 'create_hour', 'age_band', 'zmf_score_band',
-            'xbf_score_band', ]
-df = df[features]
-# 类别特征全部转换成数字
-for feature in features:
-    df[feature] = LabelEncoder().fit_transform(df[feature])
 
 # ## 评估结果
 # accuracy： 97.5%  --- 预测正确的个数占样本总数的比率

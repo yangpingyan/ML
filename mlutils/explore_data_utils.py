@@ -56,10 +56,7 @@ def pairs_plot(plot_data, target='target'):
 
 
 # 保存所有模型得分
-def add_score(name, y_test, y_pred):
-    if 'score_df' not in dir():
-        score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
-
+def add_score(score_df, name, y_test, y_pred):
     score_df[name] = [accuracy_score(y_test, y_pred), precision_score(y_test, y_pred), recall_score(y_test, y_pred),
                       f1_score(y_test, y_pred), confusion_matrix(y_test, y_pred)]
 
@@ -104,6 +101,7 @@ def feature_analyse(df, feature, label='target', bins=10):
     analyse_df['positive_rate'] = analyse_df['positive'] / analyse_df['all']
     # analyse_df.sort_values(by='positive_rate', inplace=True, ascending=False)
     analyse_df.fillna(value=0, inplace=True)
+    analyse_df.sort_values(by='positive_rate', inplace=True)
     print(analyse_df)
     plt.figure()
     plt.bar(analyse_df.index, analyse_df['positive_rate'])
