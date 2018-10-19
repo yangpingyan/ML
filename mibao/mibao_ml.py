@@ -69,7 +69,7 @@ features = ['target',
             # 实际场景效果不好的特征 # 0.971， 0.930
             # 'DAY(create_time)', 'MONTH(create_time)', 'YEAR(create_time)'
             ]
-df = df[features]
+# df = df[features]
 '''
 feature = 'MONTH(create_time)'
 df[feature].value_counts()

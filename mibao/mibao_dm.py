@@ -10,6 +10,7 @@ from sklearn.preprocessing import LabelEncoder
 import warnings
 from mlutils import *
 import featuretools as ft
+import json
 
 # Suppress warnings
 warnings.filterwarnings('ignore')
@@ -153,7 +154,7 @@ df.drop(['lease_num', 'install_ment'], axis=1,
         inplace=True, errors='ignore')
 missing_values_table(df)
 '''
-feature = 'age'
+feature = 'WEEKDAY(create_time)'
 df[feature].value_counts()
 feature_analyse(df, feature, bins=50)
 df[feature].dtype
