@@ -32,7 +32,7 @@ df = df[['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'instal
          'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
          'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
          'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
-         'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way']]
+         'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way', 'order_number']]
 df.rename(columns={'id': 'order_id'}, inplace=True)
 
 # 根据state生成TARGET，代表最终审核是否通过
@@ -173,10 +173,15 @@ counts_df['user_id'] = counts_df.index
 all_data_df = pd.merge(all_data_df, counts_df, on='user_id', how='left')
 
 # 读取并处理表 user_zhima_cert
-# 未处理特征：
 df = pd.read_csv(datasets_path + "user_zhima_cert.csv")
 df = df[['user_id', 'status', ]][df['status'].str.match('PASSED')]
 all_data_df['zhima_cert_result'] = np.where(all_data_df['user_id'].isin(df['user_id'].tolist()), 1, 0)
+
+# 读取并处理表 tongdun
+df = pd.read_csv(datasets_path + "tongdun.csv")
+df = df[['order_number', 'final_score', 'final_decision']]
+all_data_df = pd.merge(all_data_df, df, on='order_number', how='left')
+all_data_df.drop(['order_number'], axis=1, inplace=True)
 
 # 读取并处理表 用户登陆使用情况， 在mango数据库
 # df = pd.read_csv(datasets_path + "ser_login_record.csv")

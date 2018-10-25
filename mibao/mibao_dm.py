@@ -1,6 +1,8 @@
 # coding: utf-8
 
 import csv
+import re
+
 import seaborn as sns
 import pandas as pd
 import numpy as np
@@ -41,7 +43,7 @@ print("data shape {}".format(all_data_df.shape))
 features_cat = ['installment', 'commented', 'type', 'source', 'disposable_payment_enabled', 'merchant_store_id',
                 'device_type', 'goods_type', 'merchant_id', 'order_type', 'regist_channel_type', 'face_check',
                 'face_live_check', 'occupational_identity_type', 'ingress_type', 'device_type_os', 'bai_qi_shi_result',
-                'guanzhu_result', 'tongdun_result', 'delivery_way', 'old_level', 'category', ]
+                'guanzhu_result', 'tongdun_result', 'delivery_way', 'old_level', 'category', 'final_decision']
 for feature in features_cat:
     df[feature].fillna(value='NODATA' if df[feature].dtype == 'O' else -999, inplace=True)
     df[feature] = LabelEncoder().fit_transform(df[feature])
@@ -64,6 +66,7 @@ df['share_callback'] = np.where(df['share_callback'] < 1, 0, 1)
 df['tag'] = np.where(df['tag'].str.match('new'), 1, 0)
 df['phone_book'].fillna(value=0, inplace=True)
 df['account_num'].fillna(value=0, inplace=True)
+df['final_score'].fillna(value=0, inplace=True)
 
 df['cert_no'][df['cert_no'].isnull()] = df['card_id'][df['cert_no'].isnull()]
 # 有45个身份证号缺失但审核通过的订单， 舍弃不要。
@@ -72,7 +75,7 @@ df = df[df['cert_no'].notnull()]
 # 取phone前3位
 df['phone'][df['phone'].isnull()] = df['phone_user'][df['phone'].isnull()]
 df['phone'].fillna(value='0', inplace=True)
-df['phone'] = df['phone'].astype(str)
+# df['phone'] = df['phone'].astype(str)
 df['phone'][df['phone'].str.len() != 11] = '0'
 df['phone'] = df['phone'].str.slice(0, 3)
 phones_few = ['143', '106', '478', '162', '812', '165', '163', '196', '179', ]
@@ -85,7 +88,7 @@ zmf = [0] * len(df)
 xbf = [0] * len(df)
 for row, detail in enumerate(df['zmxy_score'].tolist()):
     # print(row, detail)
-    if isinstance(detail, str):
+    if isinstance(detail, type('hh')):
         if '/' in detail:
             score = detail.split('/')
             xbf[row] = 0 if score[0] == '' else (float(score[0]))
@@ -123,7 +126,6 @@ df['xbf'] = pd.cut(df['xbf'], bins, labels=False)
 df[['xbf', 'target']].groupby(['xbf'], as_index=False).mean().sort_values(by='target', ascending=False)
 df['xbf'] = LabelEncoder().fit_transform(df['xbf'])
 
-
 # order_id =9085, 9098的crate_time 是错误的
 df = df[df['create_time'] > '2016']
 # 把createtime分成月周日小时
@@ -142,19 +144,64 @@ df = pd.merge(df, feature_matrix, left_on='order_id', right_index=True, how='lef
 df['age'] = df['YEAR(create_time)'] - df['cert_no'].str.slice(6, 10).astype(int)
 df['sex'] = df['cert_no'].str.slice(-2, -1).astype(int) % 2
 
+
+def get_baiqishi_score(x):
+    ret = 0
+    if isinstance(x, type('str')):
+        ret_list = re.findall(r'final\w+core.:[\'\"]?([\d]+)', x)
+        ret = int(ret_list[0]) if len(ret_list) > 0 else 0
+
+    return ret
+
+
+df['baiqishi_score'] = df['bai_qi_shi_detail_json'].map(lambda x: get_baiqishi_score(x))
+# In[]
+
+# 处理mibao_detail_json
+# df['tdTotalScore'] = 0
+# df['zu_lin_ren_shen_fen_zheng_yan_zheng'] = 0
+# df['zu_lin_ren_xing_wei'] = 0
+# df['shou_ji_hao_yan_zheng'] = 0
+# df['fan_qi_za'] = 0
+# for index, value in enumerate(df['mibao_detail_json']):
+#     if isinstance(value, type('str')):
+#         mb_list = json.loads(value)
+#         print(index)
+#         for mb in mb_list:
+#             df.at[index, mb.get('relevanceRule', 'error')] = mb.get('score', 0)
+#             # print(mb.get('relevanceRule', 'error'))
+#             # print(mb.get('score', 0))
+#
+
+df['mibao_detail_list'] = df['mibao_detail_json'].map(lambda x: json.loads(x) if isinstance(x, type('str')) else 0)
+
+df['tdTotalScore'] = df['mibao_detail_json'].map(lambda x: json.loads(x)[0].get('score', 0) if isinstance(x, type('str')) else 0)
+df['zu_lin_ren_shen_fen_zheng_yan_zheng'] = df['mibao_detail_json'].map(lambda x: json.loads(x)[0] if isinstance(x, type('str')) else 0)
+df['zu_lin_ren_xing_wei'] = df['mibao_detail_json'].map(lambda x: json.loads(x)[2].get('score', 0) if isinstance(x, type('str')) else 0)
+df['shou_ji_hao_yan_zheng'] = df['mibao_detail_json'].map(lambda x: json.loads(x)[3].get('score', 0) if isinstance(x, type('str')) else 0)
+df['fan_qi_za'] = df['mibao_detail_list'].map(lambda x: x[4] if isinstance(x, list) and len(x)>4 else 0)
+df['fan_qi_za'] = df['mibao_detail_list'].map(lambda x: x[4] if isinstance(x, list) and len(x)>4 else 0)
+df['fan_qi_za'] = df['mibao_detail_list'].map(lambda x: x[4] if isinstance(x, list) and len(x)>4 else 0)
+df['fan_qi_za'] = df['mibao_detail_list'].map(lambda x: x[4] if isinstance(x, list) and len(x)>4 else 0)
+df['fan_qi_za'] = df['mibao_detail_list'].map(lambda x: x[4] if isinstance(x, list) and len(x)>4 else 0)
+
+# In[]
 # 未处理的特征
-df.drop(['cert_no_expiry_date', 'regist_useragent', 'cert_no_json', 'bai_qi_shi_detail_json',
-         'guanzhu_detail_json', 'mibao_detail_json', 'tongdun_detail_json'],
+df.drop(['cert_no_expiry_date', 'regist_useragent', 'cert_no_json',
+          ],
         axis=1, inplace=True, errors='ignore')
 # 已使用的特征
-df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'create_time', 'cert_no'], axis=1,
+df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'create_time', 'cert_no',
+         'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json', ], axis=1,
         inplace=True, errors='ignore')
 # 与其他特征关联度过高的特征
 df.drop(['lease_num', 'install_ment'], axis=1,
         inplace=True, errors='ignore')
 missing_values_table(df)
 '''
-feature = 'WEEKDAY(create_time)'
+'tdTotalScore','zu_lin_ren_shen_fen_zheng_yan_zheng','zu_lin_ren_xing_wei','shou_ji_hao_yan_zheng','fan_qi_za',
+
+feature = 'fan_qi_za'
 df[feature].value_counts()
 feature_analyse(df, feature, bins=50)
 df[feature].dtype
@@ -163,6 +210,7 @@ df.shape
 df[feature].unique()
 df.columns.values
 missing_values_table(df)
+df.shape
 '''
 # merchant 违约率 todo
 
@@ -179,11 +227,11 @@ features = ['target',
             'goods_type', 'commented', 'accident_insurance',
             'type', 'order_type', 'device_type', 'source', 'distance',
             'disposable_payment_discount', 'disposable_payment_enabled',
-             'deposit', 'fingerprint',
+            'deposit', 'fingerprint',
             'delivery_way', 'head_image_url', 'recommend_code',
             'regist_channel_type', 'share_callback', 'tag',
             'have_bargain_help', 'face_check', 'face_live_check',
-            'company', 'emergency_contact_name', 'phone_book','phone',
+            'company', 'emergency_contact_name', 'phone_book', 'phone',
             'emergency_contact_phone', 'emergency_contact_relation', 'num',
             'category', 'old_level', 'tongdun_result',
             'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
@@ -195,7 +243,7 @@ features = ['target',
             # 实际场景效果不好的特征 # 0.971， 0.930
             ]
 corr_df = df[features].astype(float).corr()
-corr_df = corr_df.applymap(lambda x: 0 if abs(x)<0.4 else x)
+corr_df = corr_df.applymap(lambda x: 0 if abs(x) < 0.4 else x)
 plt.figure(figsize=(14, 12))
 plt.title('Pearson Correlation of Features', y=1.05, size=15)
 sns.heatmap(corr_df, linewidths=0.1, vmax=1.0,

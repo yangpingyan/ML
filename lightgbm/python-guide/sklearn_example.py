@@ -6,11 +6,18 @@ import lightgbm as lgb
 
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import GridSearchCV
+import os
+
+PROJECT_ID = 'lightgbm'
+# ## 获取数据
+if os.getcwd().find(PROJECT_ID) == -1:
+    os.chdir(PROJECT_ID)
+datasets_path = os.getcwd() + '\\datasets\\'
 
 # load or create your dataset
 print('Load data...')
-df_train = pd.read_csv('../regression/regression.train', header=None, sep='\t')
-df_test = pd.read_csv('../regression/regression.test', header=None, sep='\t')
+df_train = pd.read_csv('./regression/regression.train', header=None, sep='\t')
+df_test = pd.read_csv('./regression/regression.test', header=None, sep='\t')
 
 y_train = df_train[0].values
 y_test = df_test[0].values

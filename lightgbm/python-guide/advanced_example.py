@@ -5,7 +5,7 @@ import lightgbm as lgb
 import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_squared_error
-
+import os
 try:
     import cPickle as pickle
 except BaseException:
@@ -13,10 +13,16 @@ except BaseException:
 
 # load or create your dataset
 print('Load data...')
-df_train = pd.read_csv('../binary_classification/binary.train', header=None, sep='\t')
-df_test = pd.read_csv('../binary_classification/binary.test', header=None, sep='\t')
-W_train = pd.read_csv('../binary_classification/binary.train.weight', header=None)[0]
-W_test = pd.read_csv('../binary_classification/binary.test.weight', header=None)[0]
+PROJECT_ID = 'lightgbm'
+# ## 获取数据
+if os.getcwd().find(PROJECT_ID) == -1:
+    os.chdir(PROJECT_ID)
+datasets_path = os.getcwd() + '\\datasets\\'
+
+df_train = pd.read_csv('./binary_classification/binary.train', header=None, sep='\t')
+df_test = pd.read_csv('./binary_classification/binary.test', header=None, sep='\t')
+W_train = pd.read_csv('./binary_classification/binary.train.weight', header=None)[0]
+W_test = pd.read_csv('./binary_classification/binary.test.weight', header=None)[0]
 
 y_train = df_train[0].values
 y_test = df_test[0].values
