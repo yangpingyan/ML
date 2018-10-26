@@ -20,7 +20,6 @@ pandas
 numpy
 scipy
 matplotlib
-graphviz
 tensorflow
 tensorflow-gpu
 keras
