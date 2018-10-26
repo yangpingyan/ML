@@ -4,7 +4,6 @@ mock
 rst2pdf
 six
 Sphinx
-pywinauto
 bs4
 requests
 dill
@@ -21,6 +20,7 @@ pandas
 numpy
 scipy
 matplotlib
+graphviz
 tensorflow
 tensorflow-gpu
 keras
@@ -35,3 +35,7 @@ flask-httpauth
 featuretools
 sqlalchemy
 pymysql
+requests
+tushare
+openpyxl
+pywinauto==0.6.4

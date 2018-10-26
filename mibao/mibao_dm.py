@@ -155,47 +155,36 @@ def get_baiqishi_score(x):
 
 
 df['baiqishi_score'] = df['bai_qi_shi_detail_json'].map(lambda x: get_baiqishi_score(x))
-# In[]
 
-# 处理mibao_detail_json
+#
+# # 处理mibao_detail_json
 # df['tdTotalScore'] = 0
 # df['zu_lin_ren_shen_fen_zheng_yan_zheng'] = 0
 # df['zu_lin_ren_xing_wei'] = 0
 # df['shou_ji_hao_yan_zheng'] = 0
 # df['fan_qi_za'] = 0
+# df.reset_index(inplace=True)
 # for index, value in enumerate(df['mibao_detail_json']):
 #     if isinstance(value, type('str')):
 #         mb_list = json.loads(value)
-#         print(index)
-#         for mb in mb_list:
-#             df.at[index, mb.get('relevanceRule', 'error')] = mb.get('score', 0)
-#             # print(mb.get('relevanceRule', 'error'))
-#             # print(mb.get('score', 0))
-#
+#         if (len(mb_list) == 5):
+#             for mb in mb_list:
+#                 df.at[index, mb.get('relevanceRule', 'error')] = mb.get('score', 0)
+#                 # print(mb.get('relevanceRule', 'error'))
+#                 # print(mb.get('score', 0))
 
-df['mibao_detail_list'] = df['mibao_detail_json'].map(lambda x: json.loads(x) if isinstance(x, type('str')) else 0)
 
-df['tdTotalScore'] = df['mibao_detail_json'].map(lambda x: json.loads(x)[0].get('score', 0) if isinstance(x, type('str')) else 0)
-df['zu_lin_ren_shen_fen_zheng_yan_zheng'] = df['mibao_detail_json'].map(lambda x: json.loads(x)[0] if isinstance(x, type('str')) else 0)
-df['zu_lin_ren_xing_wei'] = df['mibao_detail_json'].map(lambda x: json.loads(x)[2].get('score', 0) if isinstance(x, type('str')) else 0)
-df['shou_ji_hao_yan_zheng'] = df['mibao_detail_json'].map(lambda x: json.loads(x)[3].get('score', 0) if isinstance(x, type('str')) else 0)
-df['fan_qi_za'] = df['mibao_detail_list'].map(lambda x: x[4] if isinstance(x, list) and len(x)>4 else 0)
-df['fan_qi_za'] = df['mibao_detail_list'].map(lambda x: x[4] if isinstance(x, list) and len(x)>4 else 0)
-df['fan_qi_za'] = df['mibao_detail_list'].map(lambda x: x[4] if isinstance(x, list) and len(x)>4 else 0)
-df['fan_qi_za'] = df['mibao_detail_list'].map(lambda x: x[4] if isinstance(x, list) and len(x)>4 else 0)
-df['fan_qi_za'] = df['mibao_detail_list'].map(lambda x: x[4] if isinstance(x, list) and len(x)>4 else 0)
 
-# In[]
+
 # 未处理的特征
-df.drop(['cert_no_expiry_date', 'regist_useragent', 'cert_no_json',
-          ],
+df.drop(['cert_no_expiry_date', 'regist_useragent', 'cert_no_json', ],
         axis=1, inplace=True, errors='ignore')
 # 已使用的特征
 df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'create_time', 'cert_no',
-         'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json', ], axis=1,
+         'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json', 'tongdun_detail_json'], axis=1,
         inplace=True, errors='ignore')
 # 与其他特征关联度过高的特征
-df.drop(['lease_num', 'install_ment'], axis=1,
+df.drop(['lease_num', 'installment'], axis=1,
         inplace=True, errors='ignore')
 missing_values_table(df)
 '''
@@ -206,7 +195,6 @@ df[feature].value_counts()
 feature_analyse(df, feature, bins=50)
 df[feature].dtype
 df[df[feature].isnull()].sort_values(by='target').shape
-df.shape
 df[feature].unique()
 df.columns.values
 missing_values_table(df)

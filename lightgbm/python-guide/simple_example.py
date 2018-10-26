@@ -11,10 +11,9 @@ PROJECT_ID = 'lightgbm'
 # ## 获取数据
 if os.getcwd().find(PROJECT_ID) == -1:
     os.chdir(PROJECT_ID)
-datasets_path = os.getcwd() + '\\datasets\\'
-
-df_train = pd.read_csv('./regression/regression.train', header=None, sep='\t')
-df_test = pd.read_csv('./regression/regression.test', header=None, sep='\t')
+datasets_path = os.getcwd()
+df_train = pd.read_csv(datasets_path+r'\regression\regression.train', header=None, sep='\t')
+df_test = pd.read_csv(datasets_path+r'\regression\regression.test', header=None, sep='\t')
 
 y_train = df_train[0].values
 y_test = df_test[0].values
@@ -56,3 +55,4 @@ print('Start predicting...')
 y_pred = gbm.predict(X_test, num_iteration=gbm.best_iteration)
 # eval
 print('The rmse of prediction is:', mean_squared_error(y_test, y_pred) ** 0.5)
+# In[]

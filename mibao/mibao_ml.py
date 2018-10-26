@@ -60,16 +60,18 @@ features = ['target',
             'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
             'occupational_identity_type', 'company_phone', 'device_type_os',
             'regist_device_info', 'ingress_type', 'account_num', 'baiqishi_score',
-            'zhima_cert_result', 'age', 'sex', 'zmf', 'xbf', 'final_score', 'final_decision', 'tdTotalScore',
-            'zu_lin_ren_shen_fen_zheng_yan_zheng', 'zu_lin_ren_xing_wei', 'shou_ji_hao_yan_zheng', 'fan_qi_za',
+            'zhima_cert_result', 'age', 'sex', 'zmf', 'xbf', 'final_score', 'final_decision',
+      #      'zu_lin_ren_shen_fen_zheng_yan_zheng', 'zu_lin_ren_xing_wei', 'shou_ji_hao_yan_zheng', 'fan_qi_za', 'tdTotalScore',
             'WEEKDAY(create_time)',
             'HOUR(create_time)',
             # 暂时注释
             # 数值类型需转换
-            # 'price', 'cost',
+            'price', 'cost',
             # 实际场景效果不好的特征 # 0.971， 0.930
             # 'DAY(create_time)', 'MONTH(create_time)', 'YEAR(create_time)'
             ]
+
+print(list(set(df.columns.tolist()).difference(set(features))))
 df = df[features]
 '''
 feature = 'MONTH(create_time)'
@@ -163,10 +165,10 @@ print(score_df)
 
 '''
 #  lgb best score : 0.931343， 0.833524
-accuracy                            0.934485
-precision                           0.804009
-recall                              0.876214
-f1                                   0.83856
+accuracy                            0.935114
+precision                           0.811433
+recall                              0.873003
+f1                                  0.841093
 '''
 
 # LightBGM with Random Search
@@ -212,7 +214,7 @@ add_score(score_df, lgb_clf.__class__.__name__ + '_random_search', y_test, y_pre
 print(score_df)
 
 # In[2]
-
+exit('ml')
 '''
 调试代码
 df.sort_values(by=['device_type'], inplace=True, axis=1)
