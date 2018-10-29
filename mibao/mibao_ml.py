@@ -5,24 +5,14 @@ import csv
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
 from matplotlib.colors import ListedColormap
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
-from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
-from sklearn.linear_model import LogisticRegression, Perceptron
-from sklearn.linear_model import SGDClassifier
-from sklearn.svm import SVC, LinearSVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import RandomForestClassifier, VotingClassifier, AdaBoostClassifier, GradientBoostingClassifier
 from sklearn.model_selection import cross_val_predict, train_test_split, RandomizedSearchCV
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.metrics import precision_recall_curve, precision_score, recall_score, f1_score
 from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.model_selection import KFold
-from xgboost import XGBClassifier
 import lightgbm as lgb
 import random
 from mlutils import *
@@ -35,7 +25,7 @@ plt.rcParams['axes.labelsize'] = 14
 plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
 # read large csv file
-
+time_started = time.clock()
 # ## 获取数据
 PROJECT_ID = 'mibao'
 if os.getcwd().find(PROJECT_ID) == -1:
@@ -72,7 +62,7 @@ features = ['target',
             ]
 
 print(list(set(df.columns.tolist()).difference(set(features))))
-df = df[features]
+# df = df[features]
 '''
 feature = 'MONTH(create_time)'
 df[feature].value_counts()
@@ -88,55 +78,10 @@ missing_values_table(df)
 x = df.drop(['target'], axis=1)
 y = df['target']
 
-## Splitting the dataset into the Training set and Test set
+# Splitting the dataset into the Training set and Test set
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1, random_state=88)
 
-classifiers = [
-    lgb.LGBMClassifier(),  # 0.931343， 0.833524
-    # RandomForestClassifier(), #0.924745, 0.811788
-    # KNeighborsClassifier(3),
-    # # SVC(probability=True),
-    # DecisionTreeClassifier(),
-    # AdaBoostClassifier(),
-    # GradientBoostingClassifier(),
-    # GaussianNB(),
-    # LinearDiscriminantAnalysis(),
-    # QuadraticDiscriminantAnalysis(),
-    # LogisticRegression(),
-    # SGDClassifier(max_iter=5),
-    # Perceptron(),
-    # XGBClassifier()
-]
-score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
-
-# 使用所有的机器学习来预测
-# for model in classifiers:
-#     print("Running ", model.__class__.__name__)
-#     model.fit(x_train, y_train)
-#     y_pred = model.predict(x_test)
-#     add_score(score_df, model.__class__.__name__, y_pred, y_test)
-#
-# print(score_df)
-
-# ## LightGBM with cross validation
-def lgb_objective(hyperparameters, iteration):
-    """Objective function for grid and random search. Returns
-       the cross validation score from a set of hyperparameters."""
-
-
-
-    # Perform n_folds cross validation
-    # param['metric'] = ['auc', 'binary_logloss']
-    cv_results = lgb.cv(hyperparameters, train_set, num_boost_round=10000, nfold=5,
-                        early_stopping_rounds=100, metrics='auc', seed=42)
-
-    # results to retun
-    score = cv_results['auc-mean'][-1]
-    estimators = len(cv_results['auc-mean'])
-    hyperparameters['n_estimators'] = estimators
-
-    return [score, hyperparameters, iteration]
-
+score_df = pd.DataFrame(columns=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
 
 # Create a training and testing dataset
 train_set = lgb.Dataset(data=x_train, label=y_train)
@@ -148,28 +93,32 @@ lgb_params = lgb_clf.get_params()
 if 'n_estimators' in lgb_params.keys():
     del lgb_params['n_estimators']
     # Perform n_folds cross validation
-    # param['metric'] = ['auc', 'binary_logloss']
-    cv_results = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5,
-                        early_stopping_rounds=100, metrics='auc', seed=42)
-
-# results to retun
-score = cv_results['auc-mean'][-1]
-estimators = len(cv_results['auc-mean'])
-lgb_params['n_estimators'] = estimators
-
-print('The cross-validation ROC AUC was {:.5f}.'.format(score))
-
+# param['metric'] = ['auc', 'binary_logloss']
+lgb_params_auc = lgb_params.copy()
+ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='auc', seed=42)
+lgb_params_auc['n_estimators'] = len(ret['auc-mean'])
 # Train and make predicions with model
-lgb_clf = lgb.LGBMClassifier(**lgb_params)
+lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-add_score(score_df, lgb_clf.__class__.__name__ + '_cv', y_pred, y_test)
+add_score(score_df, 'auc', y_pred, y_test)
 
-feature_importances = lgb_clf.feature_importances_
-importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
-importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
-print(importance_df)
-print(score_df)
+lgb_params_binary_logloss = lgb_params.copy()
+ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='binary_logloss',
+             seed=42)
+lgb_params_binary_logloss['n_estimators'] = len(ret['binary_logloss-mean'])
+# Train and make predicions with model
+lgb_clf = lgb.LGBMClassifier(**lgb_params_binary_logloss)
+lgb_clf.fit(x_train, y_train)
+y_pred = lgb_clf.predict(x_test)
+add_score(score_df, 'binary_logloss', y_pred, y_test)
+
+#
+# feature_importances = lgb_clf.feature_importances_
+# importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
+# importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
+# print(importance_df)
+# print(score_df)
 
 # In[1]
 
@@ -195,9 +144,10 @@ confusion_matrix  [[4889, 300], [129, 1047]]
 # LightBGM with Random Search
 param_grid = {
     'boosting_type': ['gbdt', 'goss', 'dart'],
-    'n_estimators': range(100, 500),
+    'n_estimators': range(1, 500),
     'num_leaves': list(range(20, 150)),
     'learning_rate': list(np.logspace(np.log10(0.005), np.log10(0.5), base=10, num=1000)),
+    #
     # 'subsample_for_bin': list(range(20000, 300000, 20000)),
     # 'min_child_samples': list(range(20, 500, 5)),
     # 'reg_alpha': list(np.linspace(0, 1)),
@@ -206,27 +156,31 @@ param_grid = {
     # 'subsample': list(np.linspace(0.5, 1, 100)),
     # 'is_unbalance': [True, False]
 }
+scorings = ['accuracy', 'average_precision', 'f1', 'f1_micro', 'f1_macro', 'f1_weighted', 'neg_log_loss', 'precision',
+            'recall', 'roc_auc']
 
 
-lgb_clf = lgb.LGBMClassifier()
-rnd_search = RandomizedSearchCV(lgb_clf, param_distributions=param_grid, n_iter=5, cv=5, scoring='roc_auc', n_jobs=-1)
-rnd_search.fit(x_train, y_train)
-rnd_search.best_params_
-rnd_search.best_estimator_
-rnd_search.best_score_
-cvres = rnd_search.cv_results_
+for scoring in scorings:
+    lgb_clf = lgb.LGBMClassifier()
+    rnd_search = RandomizedSearchCV(lgb_clf, param_distributions=param_grid, n_iter=5, cv=5, scoring=scoring, n_jobs=-1)
+    rnd_search.fit(x_train, y_train)
+    # rnd_search.best_params_
+    # rnd_search.best_estimator_
+    # rnd_search.best_score_
+    # cvres = rnd_search.cv_results_
 
-feature_importances = rnd_search.best_estimator_.feature_importances_
-importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
-importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
-print(importance_df)
+    # Train and make predicions with model
+    lgb_clf = rnd_search.best_estimator_
+    lgb_clf.fit(x_train, y_train)
+    y_pred = lgb_clf.predict(x_test)
+    add_score(score_df, scoring + '_rs', y_test, y_pred)
+    print(score_df)
 
-# Train and make predicions with model
-lgb_clf = rnd_search.best_estimator_
-lgb_clf.fit(x_train, y_train)
-y_pred = lgb_clf.predict(x_test)
-add_score(score_df, lgb_clf.__class__.__name__ + '_random_search', y_test, y_pred)
-print(score_df)
+# feature_importances = rnd_search.best_estimator_.feature_importances_
+# importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
+# importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
+# print(importance_df)
+print('run time: {:.2f}'.format(time.clock()-time_started))
 
 # In[2]
 exit('ml')
