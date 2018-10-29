@@ -24,8 +24,10 @@ from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.model_selection import KFold
 from xgboost import XGBClassifier
 import lightgbm as lgb
-from mlutils import *
 import random
+from mlutils import *
+
+
 
 # to make output display better
 pd.set_option('display.max_columns', 50)
@@ -183,7 +185,7 @@ param_grid = {
     # 'reg_lambda': list(np.linspace(0, 1)),
     # 'colsample_bytree': list(np.linspace(0.6, 1, 10)),
     # 'subsample': list(np.linspace(0.5, 1, 100)),
-    'is_unbalance': [True, False]
+    'is_unbalance': [True]
 }
 # param_grid = {
 #     'boosting_type': ['gbdt', 'goss', 'dart'],
