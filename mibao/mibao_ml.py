@@ -60,9 +60,21 @@ features = ['target',
             # 实际场景效果不好的特征 # 0.971， 0.930
             # 'DAY(create_time)', 'MONTH(create_time)', 'YEAR(create_time)'
             ]
+categorical = [ 'merchant_id', 'pay_num', 'added_service', 'bounds_example_id', 'bounds_example_no',
+               'goods_type', 'lease_term', 'commented', 'type', 'order_type', 'device_type', 'source', 'distance',
+               'disposable_payment_discount', 'disposable_payment_enabled', 'merchant_store_id', 'deposit',
+               'fingerprint', 'delivery_way', 'head_image_url', 'recommend_code', 'regist_channel_type',
+               'share_callback', 'tag', 'have_bargain_help', 'face_check', 'face_live_check', 'phone', 'company',
+               'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation', 'category',
+               'old_level', 'tongdun_result', 'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
+               'occupational_identity_type', 'company_phone', 'device_type_os', 'regist_device_info', 'ingress_type',
+               'account_num', 'zhima_cert_result', 'sex', 'final_decision', 'WEEKDAY(create_time)', 'HOUR(create_time)',
+               # 'DAY(create_time)', 'MONTH(create_time)', 'YEAR(create_time)'
+               ]
+
 
 print(list(set(df.columns.tolist()).difference(set(features))))
-# df = df[features]
+df = df[features]
 '''
 feature = 'MONTH(create_time)'
 df[feature].value_counts()
@@ -95,7 +107,9 @@ if 'n_estimators' in lgb_params.keys():
     # Perform n_folds cross validation
 # param['metric'] = ['auc', 'binary_logloss']
 lgb_params_auc = lgb_params.copy()
-ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='auc', seed=42)
+ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='auc',
+             # categorical_feature=categorical,
+             seed=42)
 lgb_params_auc['n_estimators'] = len(ret['auc-mean'])
 # Train and make predicions with model
 lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)
@@ -105,6 +119,7 @@ add_score(score_df, 'auc', y_pred, y_test)
 
 lgb_params_binary_logloss = lgb_params.copy()
 ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='binary_logloss',
+             # categorical_feature=categorical,
              seed=42)
 lgb_params_binary_logloss['n_estimators'] = len(ret['binary_logloss-mean'])
 # Train and make predicions with model
@@ -123,22 +138,15 @@ add_score(score_df, 'binary_logloss', y_pred, y_test)
 # In[1]
 
 '''
-#  lgb best score : 0.931343， 0.833524
-metric:auc
-                           LGBMClassifier_cv LGBMClassifier_random_search
-accuracy                            0.935114                     0.939513
-precision                           0.811433                     0.879937
-recall                              0.873003                     0.827023
-f1                                  0.841093                      0.85266
-confusion_matrix  [[4859, 254], [159, 1093]]   [[4866, 152], [233, 1114]]
-
-metric:binary_logloss
-accuracy                              0.9326
-precision                           0.777283
-recall                              0.890306
-f1                                  0.829964
-confusion_matrix  [[4889, 300], [129, 1047]]
-
+                 accuracy  precision    recall        f1            confusion_matrix
+precision_rs     0.925530   0.899360  0.729770  0.805738   [[4908, 110], [364, 983]]
+binary_logloss   0.932600   0.777283  0.890306  0.829964  [[4889, 300], [129, 1047]]
+auc              0.935114   0.811433  0.873003  0.841093  [[4859, 254], [159, 1093]]
+neg_log_loss_rs  0.938570   0.887358  0.812918  0.848508  [[4879, 139], [252, 1095]]
+recall_rs        0.938570   0.883013  0.818114  0.849326  [[4872, 146], [245, 1102]]
+accuracy_rs      0.939042   0.888259  0.814402  0.849729  [[4880, 138], [250, 1097]]
+roc_auc_rs       0.939670   0.888620  0.817372  0.851508  [[4880, 138], [246, 1101]]
+f1_rs            0.941084   0.889423  0.824053  0.855491  [[4880, 138], [237, 1110]]
 '''
 
 # LightBGM with Random Search
@@ -156,9 +164,9 @@ param_grid = {
     # 'subsample': list(np.linspace(0.5, 1, 100)),
     # 'is_unbalance': [True, False]
 }
-scorings = ['accuracy', 'average_precision', 'f1', 'f1_micro', 'f1_macro', 'f1_weighted', 'neg_log_loss', 'precision',
-            'recall', 'roc_auc']
-
+scorings = ['accuracy', 'precision', 'recall', 'roc_auc', 'f1', 'average_precision', 'f1_micro', 'f1_macro',
+            'f1_weighted', 'neg_log_loss', ]
+scorings = ['neg_log_loss', 'accuracy', 'precision', 'recall', 'roc_auc', 'f1', ]
 
 for scoring in scorings:
     lgb_clf = lgb.LGBMClassifier()
@@ -180,10 +188,27 @@ for scoring in scorings:
 # importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
 # importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
 # print(importance_df)
-print('run time: {:.2f}'.format(time.clock()-time_started))
+print('run time: {:.2f}'.format(time.clock() - time_started))
+score_df.sort_values(by='accuracy', inplace=True)
+score_df
 
 # In[2]
 exit('ml')
+'''
+                      accuracy  precision    recall        f1           confusion_matrix
+auc                   0.977690   0.933185  0.960275  0.946536   [[4966, 90], [52, 1257]]
+binary_logloss        0.972192   0.914625  0.952087  0.932980  [[4956, 115], [62, 1232]]
+accuracy_rs           0.978162   0.963190  0.932442  0.947567   [[4970, 48], [91, 1256]]
+average_precision_rs  0.978476   0.961128  0.936154  0.948477   [[4967, 51], [86, 1261]]
+f1_rs                 0.977062   0.960153  0.930215  0.944947   [[4966, 52], [94, 1253]]
+f1_micro_rs           0.977848   0.962423  0.931700  0.946813   [[4969, 49], [92, 1255]]
+f1_macro_rs           0.978947   0.963331  0.936154  0.949548   [[4970, 48], [86, 1261]]
+f1_weighted_rs        0.977376   0.961627  0.930215  0.945660   [[4968, 50], [94, 1253]]
+neg_log_loss_rs       0.978162   0.963190  0.932442  0.947567   [[4970, 48], [91, 1256]]
+precision_rs          0.979104   0.962652  0.937639  0.949981   [[4969, 49], [84, 1263]]
+recall_rs             0.978476   0.961832  0.935412  0.948438   [[4968, 50], [87, 1260]]
+roc_auc_rs            0.978162   0.961069  0.934670  0.947685   [[4967, 51], [88, 1259]]
+'''
 '''
 调试代码
 df.sort_values(by=['device_type'], inplace=True, axis=1)
@@ -199,7 +224,6 @@ missing_values_table(df)
 2. IP地址、收货地址、身份证地址、居住地址中的关联
 3. 优惠券，额外服务意外险
 4. 首付金额、每日租金
-5. 手机号前三位等
 6. 下单使用的设备，通过什么客户端下单（微信、支付宝、京东、网页）
 7. 是否有推荐人， 推荐人是否通过审核
 #. 租借个数

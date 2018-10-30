@@ -120,11 +120,11 @@ df['xbf'][df['xbf'] == 0] = xbf_most
 # df['zmf'] = pd.cut(df['zmf'], bins, labels=False)
 # df[['zmf', 'target']].groupby(['zmf'], as_index=False).mean().sort_values(by='target', ascending=False)
 # df['zmf'] = LabelEncoder().fit_transform(df['zmf'])
-
-bins = pd.IntervalIndex.from_tuples([(0, 80), (80, 90), (90, 100), (100, 200)])
-df['xbf'] = pd.cut(df['xbf'], bins, labels=False)
-df[['xbf', 'target']].groupby(['xbf'], as_index=False).mean().sort_values(by='target', ascending=False)
-df['xbf'] = LabelEncoder().fit_transform(df['xbf'])
+# 小白分分类
+# bins = pd.IntervalIndex.from_tuples([(0, 80), (80, 90), (90, 100), (100, 200)])
+# df['xbf'] = pd.cut(df['xbf'], bins, labels=False)
+# df[['xbf', 'target']].groupby(['xbf'], as_index=False).mean().sort_values(by='target', ascending=False)
+# df['xbf'] = LabelEncoder().fit_transform(df['xbf'])
 
 # order_id =9085, 9098的crate_time 是错误的
 df = df[df['create_time'] > '2016']
@@ -253,7 +253,6 @@ missing_values_table(df)
 2. IP地址、收货地址、身份证地址、居住地址中的关联
 3. 优惠券，额外服务意外险
 4. 首付金额、每日租金
-5. 手机号前三位等
 6. 下单使用的设备，通过什么客户端下单（微信、支付宝、京东、网页）
 7. 是否有推荐人， 推荐人是否通过审核
 #. 租借个数
