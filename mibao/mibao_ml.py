@@ -16,6 +16,7 @@ from sklearn.model_selection import KFold
 import lightgbm as lgb
 import random
 from mlutils import *
+import pickle
 
 # to make output display better
 pd.set_option('display.max_columns', 50)
@@ -116,6 +117,8 @@ lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
 add_score(score_df, 'auc', y_pred, y_test)
+# save model
+pickle.dump(lgb_clf,open('mibao_ml.pkl','wb'))
 
 lgb_params_binary_logloss = lgb_params.copy()
 ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='binary_logloss',
