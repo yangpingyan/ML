@@ -2,8 +2,31 @@
 #
 # License: BSD 3 clause
 
+
+import csv
 import json
 
+import pandas as pd
+import numpy as np
+import os
+# Suppress warnings
+import warnings
+from mlutils import *
+import operator
+
+warnings.filterwarnings('ignore')
+# to make output display better
+pd.set_option('display.max_columns', 10)
+pd.set_option('display.max_rows', 10)
+pd.set_option('display.width', 2000)
+
+
+order_state_values = ['user_canceled', 'artificial_credit_check_unpass_canceled',
+                        'merchant_relet_check_unpass_canceled', 'system_credit_check_unpass_canceled',
+                        'merchant_credit_check_unpass_canceled','pending_artificial_credit_check', 'pending_jimi_credit_check',
+                        ]
+df = all_data_df[all_data_df['state'].isin(order_state_values )]
+missing_values_table(df)
 mibao_dic = [{'score': 123,
               'dataSourceStr': '同盾类',
               'threshold': 10,

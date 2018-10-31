@@ -46,10 +46,10 @@ features = ['target',
             'regist_channel_type', 'share_callback', 'tag',
             'have_bargain_help', 'face_check', 'face_live_check', 'phone',
             'company', 'emergency_contact_name', 'phone_book',
-            'emergency_contact_phone', 'emergency_contact_relation',
+            # 'emergency_contact_phone', 'emergency_contact_relation', 'company_phone',
             'category', 'old_level', 'tongdun_result',
             'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
-            'occupational_identity_type', 'company_phone', 'device_type_os',
+            'occupational_identity_type', 'device_type_os',
             'regist_device_info', 'ingress_type', 'account_num', 'baiqishi_score',
             'zhima_cert_result', 'age', 'sex', 'zmf', 'xbf', 'final_score', 'final_decision',
             #      'zu_lin_ren_shen_fen_zheng_yan_zheng', 'zu_lin_ren_xing_wei', 'shou_ji_hao_yan_zheng', 'fan_qi_za', 'tdTotalScore',
@@ -59,7 +59,7 @@ features = ['target',
             # 数值类型需转换
             'price', 'cost',
             # 实际场景效果不好的特征 # 0.971， 0.930
-            # 'DAY(create_time)', 'MONTH(create_time)', 'YEAR(create_time)'
+            'DAY(create_time)', 'MONTH(create_time)', 'YEAR(create_time)'
             ]
 categorical = [ 'merchant_id', 'pay_num', 'added_service', 'bounds_example_id', 'bounds_example_no',
                'goods_type', 'lease_term', 'commented', 'type', 'order_type', 'device_type', 'source', 'distance',
@@ -70,7 +70,7 @@ categorical = [ 'merchant_id', 'pay_num', 'added_service', 'bounds_example_id', 
                'old_level', 'tongdun_result', 'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
                'occupational_identity_type', 'company_phone', 'device_type_os', 'regist_device_info', 'ingress_type',
                'account_num', 'zhima_cert_result', 'sex', 'final_decision', 'WEEKDAY(create_time)', 'HOUR(create_time)',
-               # 'DAY(create_time)', 'MONTH(create_time)', 'YEAR(create_time)'
+               'DAY(create_time)', 'MONTH(create_time)', 'YEAR(create_time)'
                ]
 
 
@@ -107,6 +107,20 @@ if 'n_estimators' in lgb_params.keys():
     del lgb_params['n_estimators']
     # Perform n_folds cross validation
 # param['metric'] = ['auc', 'binary_logloss']
+
+
+lgb_params_binary_logloss = lgb_params.copy()
+ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='binary_logloss',
+             # categorical_feature=categorical,
+             seed=42)
+lgb_params_binary_logloss['n_estimators'] = len(ret['binary_logloss-mean'])
+# Train and make predicions with model
+lgb_clf = lgb.LGBMClassifier(**lgb_params_binary_logloss)
+lgb_clf.fit(x_train, y_train)
+y_pred = lgb_clf.predict(x_test)
+add_score(score_df, 'binary_logloss', y_pred, y_test)
+
+
 lgb_params_auc = lgb_params.copy()
 ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='auc',
              # categorical_feature=categorical,
@@ -120,23 +134,11 @@ add_score(score_df, 'auc', y_pred, y_test)
 # save model
 pickle.dump(lgb_clf,open('mibao_ml.pkl','wb'))
 
-lgb_params_binary_logloss = lgb_params.copy()
-ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='binary_logloss',
-             # categorical_feature=categorical,
-             seed=42)
-lgb_params_binary_logloss['n_estimators'] = len(ret['binary_logloss-mean'])
-# Train and make predicions with model
-lgb_clf = lgb.LGBMClassifier(**lgb_params_binary_logloss)
-lgb_clf.fit(x_train, y_train)
-y_pred = lgb_clf.predict(x_test)
-add_score(score_df, 'binary_logloss', y_pred, y_test)
-
-#
-# feature_importances = lgb_clf.feature_importances_
-# importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
-# importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
-# print(importance_df)
-# print(score_df)
+feature_importances = lgb_clf.feature_importances_
+importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
+importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
+print(importance_df)
+print(score_df)
 
 # In[1]
 
