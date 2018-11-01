@@ -27,6 +27,8 @@ plt.rcParams['xtick.labelsize'] = 12
 plt.rcParams['ytick.labelsize'] = 12
 # read large csv file
 time_started = time.clock()
+# 设置随机种子
+np.random.seed(88)
 # ## 获取数据
 PROJECT_ID = 'mibao'
 if os.getcwd().find(PROJECT_ID) == -1:
@@ -46,7 +48,7 @@ features = ['target',
             'regist_channel_type', 'share_callback', 'tag',
             'have_bargain_help', 'face_check', 'face_live_check', 'phone',
             'company', 'emergency_contact_name', 'phone_book',
-            # 'emergency_contact_phone', 'emergency_contact_relation', 'company_phone',
+         'company_phone',
             'category', 'old_level', 'tongdun_result',
             'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
             'occupational_identity_type', 'device_type_os',
@@ -57,7 +59,7 @@ features = ['target',
             'HOUR(create_time)',
             # 暂时注释
             # 数值类型需转换
-            'price', 'cost',
+           'price', 'cost',
             # 实际场景效果不好的特征 # 0.971， 0.930
             'DAY(create_time)', 'MONTH(create_time)', 'YEAR(create_time)'
             ]
@@ -92,7 +94,7 @@ x = df.drop(['target'], axis=1)
 y = df['target']
 
 # Splitting the dataset into the Training set and Test set
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1, random_state=88)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
 
 score_df = pd.DataFrame(columns=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
 
@@ -152,6 +154,10 @@ recall_rs        0.938570   0.883013  0.818114  0.849326  [[4872, 146], [245, 11
 accuracy_rs      0.939042   0.888259  0.814402  0.849729  [[4880, 138], [250, 1097]]
 roc_auc_rs       0.939670   0.888620  0.817372  0.851508  [[4880, 138], [246, 1101]]
 f1_rs            0.941084   0.889423  0.824053  0.855491  [[4880, 138], [237, 1110]]
+
+                accuracy  precision    recall        f1           confusion_matrix
+binary_logloss  0.973449   0.921307  0.951687  0.936250  [[4955, 106], [63, 1241]]
+auc             0.978005   0.933185  0.961744  0.947249   [[4968, 90], [50, 1257]]
 '''
 
 # LightBGM with Random Search

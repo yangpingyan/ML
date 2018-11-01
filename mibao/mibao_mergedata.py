@@ -114,7 +114,7 @@ def count_name_nums(data):
 
 
 df = pd.read_csv(datasets_path + "order_phone_book.csv")
-df = df[['order_id', 'emergency_contact_name', 'phone_book', 'emergency_contact_phone', 'emergency_contact_relation']]
+df = df[['order_id', 'phone_book',]]
 df['phone_book'] = df['phone_book'].map(count_name_nums)
 all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
