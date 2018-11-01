@@ -38,6 +38,22 @@ all_data_df = pd.read_csv(datasets_path + "mibao.csv", encoding='utf-8', engine=
 df = all_data_df.copy()
 print("data shape {}".format(all_data_df.shape))
 
+# 数据处理
+df['xiaobaiScore'] = df['order_detail'].map(lambda x: json.loads(x).get('xiaobaiScore') if isinstance(x, str) else x)
+df['zmxyScore'] = df['order_detail'].map(lambda x: json.loads(x).get('zmxyScore')if isinstance(x, str) else x)
+
+
+def count_name_nums(data):
+    name_list = []
+    if isinstance(data, str):
+        data_list = json.loads(data)
+        for phone_book in data_list:
+            if len(phone_book.get('name')) > 0 and phone_book.get('name').isdigit() is False:
+                name_list.append(phone_book.get('name'))
+
+    return len(set(name_list))
+df['phone_book'] = df['phone_book'].map(count_name_nums)
+
 # 开始处理特征
 # 类别特征处理
 features_cat = ['installment', 'commented', 'type', 'source', 'disposable_payment_enabled', 'merchant_store_id',
@@ -51,7 +67,6 @@ for feature in features_cat:
 # 只判断是否空值的特征处理
 features_cat_null = ['bounds_example_id', 'bounds_example_no', 'distance', 'fingerprint', 'added_service',
                      'recommend_code', 'regist_device_info', 'company', 'company_phone', 'workplace',
-                     'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
                      'idcard_pros', ]
 for feature in features_cat_null:
     df[feature] = np.where(df[feature].isnull(), 0, 1)
@@ -219,8 +234,7 @@ features = ['target',
             'delivery_way', 'head_image_url', 'recommend_code',
             'regist_channel_type', 'share_callback', 'tag',
             'have_bargain_help', 'face_check', 'face_live_check',
-            'company', 'emergency_contact_name', 'phone_book', 'phone',
-            'emergency_contact_phone', 'emergency_contact_relation', 'num',
+            'company', 'phone_book', 'phone',
             'category', 'old_level', 'tongdun_result',
             'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
             'occupational_identity_type', 'company_phone', 'device_type_os',
