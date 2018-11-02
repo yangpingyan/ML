@@ -38,16 +38,19 @@ order_df.rename(columns={'id': 'order_id'}, inplace=True)
 user_df = pd.read_csv(datasets_path + "user.csv")
 user_df = user_df[['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']]
 user_df.rename(columns={'id': 'user_id', 'phone': 'phone_user'}, inplace=True)
+
+# 读取并处理表 bargain_help
+bargain_help_df = pd.read_csv(datasets_path + "bargain_help.csv")
+
 # 读取并处理表 face_id
 face_id_df = pd.read_csv(datasets_path + "face_id.csv")
 face_id_df = face_id_df[['user_id', 'status']]
 face_id_df.rename(columns={'status': 'face_check'}, inplace=True)
+
 # 读取并处理表 face_id_liveness
 face_id_liveness_df = pd.read_csv(datasets_path + "face_id_liveness.csv")
 face_id_liveness_df = face_id_liveness_df[['order_id', 'status']]
 face_id_liveness_df.rename(columns={'status': 'face_live_check'}, inplace=True)
-# 读取并处理表 bargain_help
-bargain_help_df = pd.read_csv(datasets_path + "bargain_help.csv")
 
 # 读取并处理表 user_credit
 user_credit_df = pd.read_csv(datasets_path + "user_credit.csv")
@@ -87,13 +90,14 @@ user_zhima_cert_df = pd.read_csv(datasets_path + "user_zhima_cert.csv")
 
 # 读取并处理表 risk_white_list
 risk_white_list_df = pd.read_csv(datasets_path + "risk_white_list.csv")
-# 读取并处理表 risk_order
-risk_order_df = pd.read_csv(datasets_path + "risk_order.csv")
-risk_order_df = risk_order_df[['order_id', 'type', 'result', 'detail_json', ]]
+
+# 读取并处理表 jimi_order_check_result_list
+jimi_order_check_result_df = pd.read_csv(datasets_path + "jimi_order_check_result.csv")
+jimi_order_check_result_df = jimi_order_check_result_df[['order_id', 'check_remark']]
 
 
 # In[]
-
+# 直接合并表
 all_data_df = order_df.copy()
 all_data_df = pd.merge(all_data_df, user_df, on='user_id', how='left')
 all_data_df = pd.merge(all_data_df, face_id_df, on='user_id', how='left')
@@ -105,6 +109,8 @@ all_data_df = pd.merge(all_data_df, order_detail_df, on='order_id', how='left')
 all_data_df = pd.merge(all_data_df, order_goods_df, on='order_id', how='left')
 all_data_df = pd.merge(all_data_df, order_phone_book_df, on='order_id', how='left')
 all_data_df = pd.merge(all_data_df, tongdun_df, on='order_number', how='left')
+all_data_df = pd.merge(all_data_df, jimi_order_check_result_df, on='order_id', how='left')
+all_data_df.shape
 
 counts_df = pd.DataFrame({'account_num': user_third_party_account_df['user_id'].value_counts()})
 counts_df['user_id'] = counts_df.index
@@ -152,12 +158,12 @@ all_data_df.insert(0, 'target', np.where(all_data_df['state'].isin(failure_state
 
 # 去除测试数据和内部员工数据
 all_data_df = all_data_df[all_data_df['cancel_reason'].str.contains('测试') != True]
-# df = df[df['check_remark'].str.contains('测试|内部员工') != True] #order_buyout表
+all_data_df = all_data_df[all_data_df['check_remark'].str.contains('测试') != True]
 # 去除命中商户白名单的订单
 all_data_df = all_data_df[all_data_df['hit_merchant_white_list'].str.contains('01') != True]
 
 all_data_df.drop(['cancel_reason', 'hit_merchant_white_list'], axis=1, inplace=True, errors='ignore')
-all_data_df.drop(['mibao_result', 'order_number', 'cancel_reason', 'hit_merchant_white_list'], axis=1,
+all_data_df.drop(['mibao_result', 'order_number', 'cancel_reason', 'hit_merchant_white_list', 'check_remark'], axis=1,
                  inplace=True, errors='ignore')
 
 # 保存数据

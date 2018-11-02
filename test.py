@@ -13,6 +13,15 @@ import os
 import warnings
 from mlutils import *
 import operator
+import itertools
+
+
+for num in itertools.permutations([0, 2, 3, 4, 5, 6, 7, 8, 9], 9):
+    num1 = num[0]*100 + num[1]*10 + num[2] + num[3]*100 + num[4]*10 + num[5]
+
+    num2 = num[6]*100 + num[7]*10 + num[8] + 1000
+    if num1 == num2:
+        print(num)
 
 warnings.filterwarnings('ignore')
 # to make output display better
