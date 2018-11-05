@@ -15,13 +15,20 @@ from mlutils import *
 import operator
 import itertools
 
-
-for num in itertools.permutations([0, 2, 3, 4, 5, 6, 7, 8, 9], 9):
+count=0
+df = pd.DataFrame(columns=[1,2,3,4,5,6,7,8])
+for num in itertools.permutations([2, 3, 4, 5, 6, 7, 8, 9], 8):
     num1 = num[0]*100 + num[1]*10 + num[2] + num[3]*100 + num[4]*10 + num[5]
 
-    num2 = num[6]*100 + num[7]*10 + num[8] + 1000
+    num2 = 100 + num[6]*10 + num[7] + 1000
     if num1 == num2:
-        print(num)
+        df.loc[count] = num
+        count = count + 1
+        print(count, num)
+for col in df.columns:
+    print(df[col].unique())
+df[1].unique()
+
 
 warnings.filterwarnings('ignore')
 # to make output display better
