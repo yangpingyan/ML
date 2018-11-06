@@ -15,32 +15,30 @@ import numpy as np
 import json
 from mlutils import *
 
-
-
 app = Flask(__name__)
 cur_dir = os.path.dirname(__file__)
 clf = pickle.load(open(os.path.join(cur_dir, 'mibao_ml.pkl'), 'rb'))
-# In[]
-order_id = 88668
-is_sql = True
-features = ['user_id', 'status']
-filename = 'order'
-table = 'order_id'
-id_value = 11
 
-starttime = time.clock()
-all_data_df = get_order_data(order_id=88668, is_sql=True)
-print(time.clock()-starttime)
+all_data_df = pd.read_csv("{}mibaodata_ml.csv".format(datasets_path), encoding='utf-8', engine='python')
+all_data_df.drop('target', inplace=True, axis=1)
+df = get_order_data(order_id=88668, is_sql=True)
+df = process_data_mibao(df)
+all_data_df = pd.concat([all_data_df, df] )
+all_data_df[all_data_df['order_id'] ==88668]
 
-# In[]
+
 @app.route('/ml/<int:order_id>', methods=['GET'])
 def get_predict_result(order_id):
     print("order_id:", order_id)
-    order_data = get_order_data(order_id)
-    if len(order_data) != 59:
+    df = get_order_data(order_id=88668, is_sql=True)
+    df = process_data_mibao(df)
+    df.drop(['tongdun_detail_json', 'mibao_result', 'order_number', 'cancel_reason', 'hit_merchant_white_list',
+                      'check_remark', 'cancel_reason', 'hit_merchant_white_list'], axis=1,
+                     inplace=True, errors='ignore')
+    if len(df.columns) != 56:
         return make_response(jsonify({'error': 'data error'}), 404)
-    order_data = np.array(order_data).reshape(1, -1)
-    y_pred = clf.predict(order_data)
+    # order_data = np.array(df).reshape(1, -1)
+    y_pred = clf.predict(df)
     print("y_pred:", y_pred[0])
     return jsonify({'ml_result': int(y_pred[0])}), 201
 

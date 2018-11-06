@@ -80,8 +80,6 @@ all_data_df.to_csv(datasets_path + "mibao.csv", index=False)
 print("mibao.csv saved with shape {}".format(all_data_df.shape))
 # missing_values_table(all_data_df)
 
-# In[]
-
 
 # In[]
 exit('mergedata')

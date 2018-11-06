@@ -87,11 +87,8 @@ def process_data_mibao(df):
                   '150', '151', '152', '153', '155', '156', '157', '158', '159', '166', '170', '171',
                   '173', '175', '176', '177', '178', '180', '181', '182', '183', '184', '185', '186',
                   '187', '188', '189', '198', '199']
-    installment_list = ["b'\\x00'", "b'\\x01'"]
-    commented_list = ["b'\\x00'", "b'\\x01'"]
     type_list = ['DEPOSIT_ORDER', 'LEASE_ORDER', 'PCREDIT_FREEZE_ORDER', 'RELET_ORDER']
     source_list = ['aliPay', 'alipayMiniProgram', 'android', 'ios', 'jd', 'saas', 'weChat', 'weChatMiniProgram']
-    disposable_payment_enabled_list = ["b'\\x00'", "b'\\x01'"]
     merchant_store_id_list = [22.0, 36.0, 40.0, 42.0, 43.0, 45.0, 46.0, 47.0, 48.0, 49.0, 52.0, 53.0, 54.0,
                               55.0, 56.0, 60.0, 62.0, 67.0, 70.0, 72.0, 73.0, 75.0, 76.0, 77.0, 81.0, 85.0, 131.0,
                               137.0, 139.0, 140.0, 142.0, 144.0, 145.0, 146.0, 149.0, 151.0, 155.0, 161.0, 162.0, 168.0,
@@ -115,7 +112,6 @@ def process_data_mibao(df):
                         479, 481, 482, 483, 485, 489, 491, 496]
     order_type_list = ['COMMON', 'PUSHING']
     regist_channel_type_list = [0.0, 1.0, 2.0, 3.0, 4.0, 105.0, 112.0, 113.0, 117.0]
-    face_check_list = ["b'\\x00'", "b'\\x01'"]
     occupational_identity_type_list = ['civil_servant', 'company_clerk', 'company_manager',
                                        'enterprises_clerk', 'other', 'public_institution', 'teacher']
     ingress_type_list = ['APP', 'WEB']
@@ -130,8 +126,8 @@ def process_data_mibao(df):
 
     final_decision_list = ['拒绝', '通过', '需评估']
 
-    features_cat = ['installment', 'commented', 'type', 'source', 'disposable_payment_enabled', 'merchant_store_id',
-                    'device_type', 'goods_type', 'merchant_id', 'order_type', 'regist_channel_type', 'face_check',
+    features_cat = ['type', 'source', 'merchant_store_id',
+                    'device_type', 'goods_type', 'merchant_id', 'order_type', 'regist_channel_type',
                      'occupational_identity_type', 'ingress_type', 'device_type_os',
                     'bai_qi_shi_result', 'guanzhu_result', 'tongdun_result', 'delivery_way', 'old_level', 'category',
                     'final_decision', 'phone']
@@ -155,7 +151,14 @@ def process_data_mibao(df):
                          'recommend_code', 'regist_device_info', 'company', 'company_phone', 'workplace',
                          'idcard_pros', ]
     for feature in features_cat_null:
-        df[feature] = np.where(df[feature].isnull(), 0, 1)
+        # if df[feature].dtype is np.dtype('O'):
+        #     df[feature] = np.where((df[feature].isnull() == True or df[feature].str.match('') == True), 0, 1)
+        # else:
+        #     df[feature] = np.where(df[feature].isnull(), 0, 1)
+        df[feature].fillna(0, inplace=True)
+
+        df[feature][df[feature] is ''] =0
+        df[feature] = np.where(df[feature]==0, 0, 1)
 
     df['deposit'] = np.where(df['deposit'] == 0, 0, 1)
 
@@ -286,8 +289,14 @@ def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=Fals
         df = df[features]
     print(filename, time.clock() - starttime)
     return df
-
-def get_order_data(order_id=None, is_sql=False):
+'''
+df = order_df.copy()
+df.distance.dtype
+df.distance.fillna(0)
+df.distance.astype(float)
+df['distance'].str.match('')
+'''
+def get_order_data(order_id=88668, is_sql=False):
     # 读取order表
     features = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
                 'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
@@ -300,7 +309,7 @@ def get_order_data(order_id=None, is_sql=False):
     user_id = order_df.at[0, 'user_id']
     order_number = order_df.at[0, 'order_number']
     all_data_df = order_df.copy()
-
+    order_df.sort_values('distance', inplace=True)
     # 读取并处理表 user
     features = ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
     user_df = read_mlfile('user', features, 'id', user_id, is_sql)
@@ -395,5 +404,16 @@ def get_order_data(order_id=None, is_sql=False):
     # 读取并处理表 jimi_order_check_result_list
     df = read_mlfile('jimi_order_check_result', ['order_id', 'check_remark'], 'order_id', order_id, is_sql)
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
+
+
+    #特殊字符串的列预先处理下：
+    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check']
+    # df = all_data_df.copy()
+    for feature in features:
+        # print(all_data_df[feature].value_counts())
+        all_data_df[feature] = all_data_df[feature].astype(str)
+        all_data_df[feature].fillna('0', inplace=True)
+        all_data_df[feature] = np.where(all_data_df[feature].str.contains('1'), 1, 0)
+        # print(all_data_df[feature].value_counts())
 
     return all_data_df
