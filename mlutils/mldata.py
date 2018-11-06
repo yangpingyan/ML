@@ -156,8 +156,7 @@ def process_data_mibao(df):
         # else:
         #     df[feature] = np.where(df[feature].isnull(), 0, 1)
         df[feature].fillna(0, inplace=True)
-
-        df[feature][df[feature] is ''] =0
+        df[feature][df[feature].isin([np.nan, ''])] =0  # todo, fillna repalce to isin
         df[feature] = np.where(df[feature]==0, 0, 1)
 
     df['deposit'] = np.where(df['deposit'] == 0, 0, 1)
