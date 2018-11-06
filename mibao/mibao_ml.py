@@ -46,22 +46,24 @@ features = ['target',
             'merchant_store_id', 'deposit', 'fingerprint',
             'delivery_way', 'head_image_url', 'recommend_code',
             'regist_channel_type', 'share_callback', 'tag',
-            'have_bargain_help', 'face_check', 'face_live_check', 'phone',
-            'company', 'phone_book',
+            'have_bargain_help', 'face_check', 'phone',
+            'company',
             'company_phone',
             'category', 'old_level', 'tongdun_result',
             'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
             'occupational_identity_type', 'device_type_os',
-            'regist_device_info', 'ingress_type', 'account_num', 'baiqishi_score',
+            'regist_device_info', 'ingress_type',  'baiqishi_score',
             'zhima_cert_result', 'age', 'sex', 'zmf', 'xbf', 'final_score', 'final_decision',
             #      'zu_lin_ren_shen_fen_zheng_yan_zheng', 'zu_lin_ren_xing_wei', 'shou_ji_hao_yan_zheng', 'fan_qi_za', 'tdTotalScore',
             'weekday',
             'hour',
             # 暂时注释
+            # 'account_num','phone_book','face_live_check',
             # 数值类型需转换
             'price', 'cost',
             # 实际场景效果不好的特征 # 0.971， 0.930
-            'day', 'month',
+            'day',
+            #'month',
             ]
 
 
@@ -141,8 +143,8 @@ roc_auc_rs       0.939670   0.888620  0.817372  0.851508  [[4880, 138], [246, 11
 f1_rs            0.941084   0.889423  0.824053  0.855491  [[4880, 138], [237, 1110]]
 
                 accuracy  precision    recall        f1           confusion_matrix
-binary_logloss  0.975000   0.919259  0.961270  0.939796  [[4960, 109], [50, 1241]]
-auc             0.975157   0.918519  0.962733  0.940106  [[4962, 110], [48, 1240]]
+binary_logloss  0.963679   0.882222  0.942993  0.911596  [[4938, 159], [72, 1191]]
+auc             0.972484   0.909630  0.958626  0.933485  [[4957, 122], [53, 1228]]
 '''
 
 # LightBGM with Random Search

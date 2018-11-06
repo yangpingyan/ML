@@ -34,11 +34,9 @@ if os.getcwd().find(PROJECT_ID) == -1:
     os.chdir(PROJECT_ID)
 datasets_path = os.getcwd() + '\\datasets\\'
 all_data_df = pd.read_csv(datasets_path + "mibao.csv", encoding='utf-8', engine='python')
-# In[]
+
 df = all_data_df.copy()
 print("data shape {}".format(all_data_df.shape))
-
-
 df = process_data_mibao(df)
 
 df.to_csv(datasets_path + "mibaodata_ml.csv", index=False)

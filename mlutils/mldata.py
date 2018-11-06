@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 import json
 import numpy as np
 import re
+import time
 
 # 初始化数据库连接，使用pymysql模块
 engine = create_engine('mysql+pymysql://root:qawsedrf@localhost:3306/mibao')
@@ -115,7 +116,6 @@ def process_data_mibao(df):
     order_type_list = ['COMMON', 'PUSHING']
     regist_channel_type_list = [0.0, 1.0, 2.0, 3.0, 4.0, 105.0, 112.0, 113.0, 117.0]
     face_check_list = ["b'\\x00'", "b'\\x01'"]
-    face_live_check_list = ["b'\\x01'"]
     occupational_identity_type_list = ['civil_servant', 'company_clerk', 'company_manager',
                                        'enterprises_clerk', 'other', 'public_institution', 'teacher']
     ingress_type_list = ['APP', 'WEB']
@@ -132,7 +132,7 @@ def process_data_mibao(df):
 
     features_cat = ['installment', 'commented', 'type', 'source', 'disposable_payment_enabled', 'merchant_store_id',
                     'device_type', 'goods_type', 'merchant_id', 'order_type', 'regist_channel_type', 'face_check',
-                    'face_live_check', 'occupational_identity_type', 'ingress_type', 'device_type_os',
+                     'occupational_identity_type', 'ingress_type', 'device_type_os',
                     'bai_qi_shi_result', 'guanzhu_result', 'tongdun_result', 'delivery_way', 'old_level', 'category',
                     'final_decision', 'phone']
 
@@ -148,17 +148,7 @@ def process_data_mibao(df):
     df['xiaobaiScore'] = df['xiaobaiScore'].map(lambda x: float(x) if str(x) > '0' else 0)
     df['zmxyScore'] = df['zmxyScore'].map(lambda x: float(x) if str(x) > '0' else 0)
 
-    def count_name_nums(data):
-        name_list = []
-        if isinstance(data, str):
-            data_list = json.loads(data)
-            for phone_book in data_list:
-                if len(phone_book.get('name')) > 0 and phone_book.get('name').isdigit() is False:
-                    name_list.append(phone_book.get('name'))
 
-        return len(set(name_list))
-
-    df['phone_book'] = df['phone_book'].map(count_name_nums)
 
     # 只判断是否空值的特征处理
     features_cat_null = ['bounds_example_id', 'bounds_example_no', 'distance', 'fingerprint', 'added_service',
@@ -175,8 +165,7 @@ def process_data_mibao(df):
 
     df['share_callback'] = np.where(df['share_callback'] < 1, 0, 1)
     df['tag'] = np.where(df['tag'].str.match('new'), 1, 0)
-    df['phone_book'].fillna(value=0, inplace=True)
-    df['account_num'].fillna(value=0, inplace=True)
+    # df['account_num'].fillna(value=0, inplace=True)
     df['final_score'].fillna(value=0, inplace=True)
 
     df['cert_no'][df['cert_no'].isnull()] = df['card_id'][df['cert_no'].isnull()]
@@ -261,7 +250,7 @@ def process_data_mibao(df):
             axis=1, inplace=True, errors='ignore')
     # 已使用的特征
     df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'create_time', 'cert_no',
-             'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json', 'tongdun_detail_json',
+             'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json',
              'order_detail'], axis=1,
             inplace=True, errors='ignore')
     # 与其他特征关联度过高的特征
@@ -285,3 +274,126 @@ def process_data_mibao(df):
 
     return df
 
+
+def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=False):
+    starttime = time.clock()
+    if is_sql:
+        sql = "SELECT {} FROM `{}` o WHERE o.{} = {};".format(",".join(features), filename, table, id_value)
+        print(sql)
+        df = pd.read_sql_query(sql, engine)
+    else:
+        df = pd.read_csv(datasets_path + filename + '.csv', encoding='utf-8', engine='python')
+        df = df[features]
+    print(filename, time.clock() - starttime)
+    return df
+
+def get_order_data(order_id=None, is_sql=False):
+    # 读取order表
+    features = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
+                'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
+                'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
+                'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
+                'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way',
+                'order_number']
+    order_df = read_mlfile('order', features, 'id', order_id, is_sql)
+    order_df.rename(columns={'id': 'order_id'}, inplace=True)
+    user_id = order_df.at[0, 'user_id']
+    order_number = order_df.at[0, 'order_number']
+    all_data_df = order_df.copy()
+
+    # 读取并处理表 user
+    features = ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
+    user_df = read_mlfile('user', features, 'id', user_id, is_sql)
+    user_df.rename(columns={'id': 'user_id', 'phone': 'phone_user'}, inplace=True)
+    all_data_df = pd.merge(all_data_df, user_df, on='user_id', how='left')
+
+    # 读取并处理表 bargain_help
+    bargain_help_df = read_mlfile('bargain_help', ['user_id'], 'user_id', user_id, is_sql)
+    all_data_df['have_bargain_help'] = np.where(all_data_df['user_id'].isin(bargain_help_df['user_id'].values), 1, 0)
+
+    # 读取并处理表 face_id
+    face_id_df = read_mlfile('face_id', ['user_id', 'status'], 'user_id', user_id, is_sql)
+    face_id_df.rename(columns={'status': 'face_check'}, inplace=True)
+    all_data_df = pd.merge(all_data_df, face_id_df, on='user_id', how='left')
+
+    # 读取并处理表 face_id_liveness
+    # face_id_liveness_df = read_mlfile('face_id_liveness', ['order_id', 'status'], 'order_id', order_id, is_sql)
+    # face_id_liveness_df.rename(columns={'status': 'face_live_check'}, inplace=True)
+    # all_data_df = pd.merge(all_data_df, face_id_liveness_df, on='order_id', how='left')
+
+    # 读取并处理表 user_credit
+    user_credit_df = read_mlfile('user_credit',
+                                 ['user_id', 'cert_no', 'workplace', 'idcard_pros', 'occupational_identity_type',
+                                  'company_phone', 'cert_no_expiry_date', 'cert_no_json', ], 'user_id', user_id, is_sql)
+    all_data_df = pd.merge(all_data_df, user_credit_df, on='user_id', how='left')
+
+    # 读取并处理表 user_device
+    user_device_df = read_mlfile('user_device',
+                                 ['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type'],
+                                 'user_id', user_id, is_sql)
+    user_device_df.rename(columns={'device_type': 'device_type_os'}, inplace=True)
+    all_data_df = pd.merge(all_data_df, user_device_df, on='user_id', how='left')
+
+    # 读取并处理表 order_express
+    # 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address', 'live_address'
+    order_express_df = read_mlfile('order_express', ['order_id', 'zmxy_score', 'card_id', 'phone', 'company', ],
+                                   'order_id', order_id, is_sql)
+    order_express_df.drop_duplicates(subset='order_id', inplace=True)
+    all_data_df = pd.merge(all_data_df, order_express_df, on='order_id', how='left')
+
+    # 读取并处理表 order_detail
+    order_detail_df = read_mlfile('order_detail', ['order_id', 'order_detail'], 'order_id', order_id, is_sql)
+    all_data_df = pd.merge(all_data_df, order_detail_df, on='order_id', how='left')
+
+    # 读取并处理表 order_goods
+    order_goods_df = read_mlfile('order_goods', ['order_id', 'price', 'category', 'old_level'], 'order_id', order_id,
+                                 is_sql)
+    order_goods_df.drop_duplicates(subset='order_id', inplace=True)
+    all_data_df = pd.merge(all_data_df, order_goods_df, on='order_id', how='left')
+
+    # 读取并处理表 order_phone_book
+    # order_phone_book_df = read_mlfile('order_phone_book', ['order_id', 'phone_book'], 'order_id', order_id, is_sql)
+    # all_data_df = pd.merge(all_data_df, order_phone_book_df, on='order_id', how='left')
+    # def count_name_nums(data):
+    #     name_list = []
+    #     if isinstance(data, str):
+    #         data_list = json.loads(data)
+    #         for phone_book in data_list:
+    #             if len(phone_book.get('name')) > 0 and phone_book.get('name').isdigit() is False:
+    #                 name_list.append(phone_book.get('name'))
+    #
+    #     return len(set(name_list))
+    #
+    # df['phone_book'] = df['phone_book'].map(count_name_nums)
+    # df['phone_book'].fillna(value=0, inplace=True)
+
+    # 读取并处理表 risk_order
+    risk_order_df = read_mlfile('risk_order', ['order_id', 'type', 'result', 'detail_json'], 'order_id', order_id,
+                                is_sql)
+    risk_order_df['result'] = risk_order_df['result'].str.lower()
+    for risk_type in ['tongdun', 'mibao', 'guanzhu', 'bai_qi_shi']:
+        tmp_df = risk_order_df[risk_order_df['type'].str.match(risk_type)][['order_id', 'result', 'detail_json']]
+        tmp_df.rename(
+            columns={'result': risk_type + '_result', 'detail_json': risk_type + '_detail_json'},
+            inplace=True)
+        all_data_df = pd.merge(all_data_df, tmp_df, on='order_id', how='left')
+    # 读取并处理表 tongdun
+    tongdun_df = read_mlfile('tongdun', ['order_number', 'final_score', 'final_decision'], 'order_number', order_number,
+                             is_sql)
+    all_data_df = pd.merge(all_data_df, tongdun_df, on='order_number', how='left')
+
+    # 读取并处理表 user_third_party_account
+    # user_third_party_account_df = read_mlfile('user_third_party_account', ['user_id'], 'user_id', user_id, is_sql)
+    # counts_df = pd.DataFrame({'account_num': user_third_party_account_df['user_id'].value_counts()})
+    # counts_df['user_id'] = counts_df.index
+    # all_data_df = pd.merge(all_data_df, counts_df, on='user_id', how='left')
+
+    # 读取并处理表 user_zhima_cert
+    df = read_mlfile('user_zhima_cert', ['user_id', 'status'], 'user_id', user_id, is_sql)
+    all_data_df['zhima_cert_result'] = np.where(all_data_df['user_id'].isin(df['user_id'].tolist()), 1, 0)
+
+    # 读取并处理表 jimi_order_check_result_list
+    df = read_mlfile('jimi_order_check_result', ['order_id', 'check_remark'], 'order_id', order_id, is_sql)
+    all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
+
+    return all_data_df
