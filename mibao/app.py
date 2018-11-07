@@ -4,6 +4,8 @@ import os
 import time
 import datetime
 from argparse import ArgumentParser
+from importlib import reload
+
 import pytesseract
 from PIL import Image
 from flask import Flask, request, jsonify
@@ -13,25 +15,28 @@ import pickle
 import pandas as pd
 import numpy as np
 import json
-from mlutils import *
+import mlutils
+reload(mlutils)
 
 app = Flask(__name__)
-cur_dir = os.path.dirname(__file__)
+cur_dir = mlutils.get_workdir('mibao')
 clf = pickle.load(open(os.path.join(cur_dir, 'mibao_ml.pkl'), 'rb'))
 
-all_data_df = pd.read_csv("{}mibaodata_ml.csv".format(datasets_path), encoding='utf-8', engine='python')
+all_data_df = pd.read_csv(os.path.join(cur_dir, 'datasets', 'mibaodata_ml.csv'), encoding='utf-8', engine='python')
 all_data_df.drop('target', inplace=True, axis=1)
-df = get_order_data(order_id=88668, is_sql=True)
-df = process_data_mibao(df)
+
+order_id = 88668
+df = mlutils.get_order_data(order_id, is_sql=True)
+df = mlutils.process_data_mibao(df)
 all_data_df = pd.concat([all_data_df, df] )
-all_data_df[all_data_df['order_id'] ==88668]
+all_data_df[all_data_df['order_id'] ==order_id]
 
 
 @app.route('/ml/<int:order_id>', methods=['GET'])
 def get_predict_result(order_id):
     print("order_id:", order_id)
-    df = get_order_data(order_id=88668, is_sql=True)
-    df = process_data_mibao(df)
+    df = mlutils.get_order_data(order_id=88668, is_sql=True)
+    df = mlutils.process_data_mibao(df)
     df.drop(['tongdun_detail_json', 'mibao_result', 'order_number', 'cancel_reason', 'hit_merchant_white_list',
                       'check_remark', 'cancel_reason', 'hit_merchant_white_list'], axis=1,
                      inplace=True, errors='ignore')

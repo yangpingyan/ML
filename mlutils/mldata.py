@@ -9,10 +9,15 @@ import json
 import numpy as np
 import re
 import time
+import os
 
 # 初始化数据库连接，使用pymysql模块
 engine = create_engine('mysql+pymysql://root:qawsedrf@localhost:3306/mibao')
-datasets_path = "D:/datasets_ml/mibao/"
+PROJECT_ID = 'mibao'
+# ## 获取数据
+if os.getcwd().find(PROJECT_ID) == -1:
+    os.chdir(PROJECT_ID)
+datasets_path = os.getcwd() + '\\datasets\\'
 
 def load_data_mibao():
     df = load_data_mibao_sql()
@@ -151,13 +156,9 @@ def process_data_mibao(df):
                          'recommend_code', 'regist_device_info', 'company', 'company_phone', 'workplace',
                          'idcard_pros', ]
     for feature in features_cat_null:
-        # if df[feature].dtype is np.dtype('O'):
-        #     df[feature] = np.where((df[feature].isnull() == True or df[feature].str.match('') == True), 0, 1)
-        # else:
-        #     df[feature] = np.where(df[feature].isnull(), 0, 1)
         df[feature].fillna(0, inplace=True)
-        df[feature][df[feature].isin([np.nan, ''])] =0  # todo, fillna repalce to isin
-        df[feature] = np.where(df[feature]==0, 0, 1)
+        df[feature] = np.where(df[feature].isin(['', ' ',0]), 0, 1)
+
 
     df['deposit'] = np.where(df['deposit'] == 0, 0, 1)
 
@@ -211,7 +212,7 @@ def process_data_mibao(df):
     # 把createtime分成月周日小时
     df['create_time'] = pd.to_datetime(df['create_time'])
     df['year'] = df['create_time'].map(lambda x: x.year)
-    df['month'] = df['create_time'].map(lambda x: x.month)
+    # df['month'] = df['create_time'].map(lambda x: x.month)
     df['day'] = df['create_time'].map(lambda x: x.day)
     df['weekday'] = df['create_time'].map(lambda x: x.weekday())
     df['hour'] = df['create_time'].map(lambda x: x.hour)
