@@ -82,7 +82,7 @@ lgb_params_binary_logloss['n_estimators'] = len(ret['binary_logloss-mean'])
 lgb_clf = lgb.LGBMClassifier(**lgb_params_binary_logloss)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-add_score(score_df, 'binary_logloss', y_pred, y_test)
+add_score(score_df, 'binary_logloss', y_test, y_pred)
 
 lgb_params_auc = lgb_params.copy()
 ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='auc', seed=42)
@@ -91,7 +91,7 @@ lgb_params_auc['n_estimators'] = len(ret['auc-mean'])
 lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-add_score(score_df, 'auc', y_pred, y_test)
+add_score(score_df, 'auc', y_test, y_pred)
 # save model
 pickle.dump(lgb_clf, open('mibao_ml.pkl', 'wb'))
 

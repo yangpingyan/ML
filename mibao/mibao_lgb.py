@@ -114,7 +114,7 @@ score_df = pd.DataFrame(index=['accuracy', 'precision', 'recall', 'f1', 'confusi
 #     print("Running ", model.__class__.__name__)
 #     model.fit(x_train, y_train)
 #     y_pred = model.predict(x_test)
-#     add_score(score_df, model.__class__.__name__, y_pred, y_test)
+#
 #
 # print(score_df)
 
@@ -163,7 +163,6 @@ print('The cross-validation ROC AUC was {:.5f}.'.format(score))
 lgb_clf = lgb.LGBMClassifier(**lgb_params)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-add_score(score_df, lgb_clf.__class__.__name__ + '_cv', y_pred, y_test)
 
 feature_importances = lgb_clf.feature_importances_
 importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})

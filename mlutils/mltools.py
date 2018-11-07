@@ -10,5 +10,5 @@ def get_workdir(projectid):
     except:
         cur_dir = os.getcwd()
     if cur_dir.find(projectid) == -1:
-        os.chdir(projectid)
+        cur_dir = os.path.join(cur_dir, projectid)
     return cur_dir

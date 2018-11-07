@@ -71,7 +71,7 @@ all_data_df = all_data_df[all_data_df['check_remark'].str.contains('测试') != 
 all_data_df = all_data_df[all_data_df['hit_merchant_white_list'].str.contains('01') != True]
 
 # 丢弃不需要的特征
-all_data_df.drop(['tongdun_detail_json', 'mibao_result', 'order_number', 'cancel_reason', 'hit_merchant_white_list', 'check_remark', 'cancel_reason', 'hit_merchant_white_list'], axis=1,
+all_data_df.drop(['tongdun_detail_json', 'mibao_result', 'order_number', 'cancel_reason', 'hit_merchant_white_list', 'check_remark'], axis=1,
                  inplace=True, errors='ignore')
 
 # print(set(all_data_df.columns.tolist()) - set(all_data_df_sql.columns.tolist()))

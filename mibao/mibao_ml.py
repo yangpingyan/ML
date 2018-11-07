@@ -17,6 +17,8 @@ import lightgbm as lgb
 import random
 from mlutils import *
 import pickle
+from sklearn.externals import joblib
+
 
 # to make output display better
 pd.set_option('display.max_columns', 50)
@@ -35,6 +37,7 @@ if os.getcwd().find(PROJECT_ID) == -1:
     os.chdir(PROJECT_ID)
 datasets_path = os.getcwd() + '\\datasets\\'
 df = pd.read_csv("{}mibaodata_ml.csv".format(datasets_path), encoding='utf-8', engine='python')
+result_df = df[['order_id','target']]
 print("初始数据量: {}".format(df.shape))
 
 features = ['target',
@@ -110,7 +113,7 @@ lgb_params_binary_logloss['n_estimators'] = len(ret['binary_logloss-mean'])
 lgb_clf = lgb.LGBMClassifier(**lgb_params_binary_logloss)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-add_score(score_df, 'binary_logloss', y_pred, y_test)
+add_score(score_df, 'binary_logloss',y_test, y_pred )
 
 lgb_params_auc = lgb_params.copy()
 ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='auc', seed=42)
@@ -119,15 +122,23 @@ lgb_params_auc['n_estimators'] = len(ret['auc-mean'])
 lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-add_score(score_df, 'auc', y_pred, y_test)
+add_score(score_df, 'auc', y_test, y_pred )
 # save model
 pickle.dump(lgb_clf, open('mibao_ml.pkl', 'wb'))
+joblib.dump(value=lgb_clf,filename="mibao_ml.gz",compress=True)
+
 
 feature_importances = lgb_clf.feature_importances_
 importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
 importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
 print(importance_df)
+
+y_pred = lgb_clf.predict(x)
+add_score(score_df, 'auc_alldata',y_test=y, y_pred=y_pred)
 print(score_df)
+result_df['predict'] = y_pred
+result_df.to_csv(datasets_path + "mibao_mlresult.csv", index=False)
+
 
 # In[1]
 

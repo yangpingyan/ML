@@ -276,5 +276,4 @@ clf = rnd_search.best_estimator_
 starttime = time.clock()
 clf.fit(x_train, y_train)
 y_pred = clf.predict(x_test)
-add_score(score_df, clf.__class__.__name__ + 'best', time.clock() - starttime, y_pred, y_test)
 print(score_df)

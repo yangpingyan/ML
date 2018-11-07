@@ -19,6 +19,7 @@ if os.getcwd().find(PROJECT_ID) == -1:
     os.chdir(PROJECT_ID)
 datasets_path = os.getcwd() + '\\datasets\\'
 
+
 def load_data_mibao():
     df = load_data_mibao_sql()
     return df
@@ -80,7 +81,6 @@ def read_save_infos_only_ordered():
         df.to_csv("D:/datasets_ml/{}.csv".format(table), index=False)
 
 
-
 def process_data_mibao(df):
     # 取phone前3位
     df['phone'][df['phone'].isnull()] = df['phone_user'][df['phone'].isnull()]
@@ -133,7 +133,7 @@ def process_data_mibao(df):
 
     features_cat = ['type', 'source', 'merchant_store_id',
                     'device_type', 'goods_type', 'merchant_id', 'order_type', 'regist_channel_type',
-                     'occupational_identity_type', 'ingress_type', 'device_type_os',
+                    'occupational_identity_type', 'ingress_type', 'device_type_os',
                     'bai_qi_shi_result', 'guanzhu_result', 'tongdun_result', 'delivery_way', 'old_level', 'category',
                     'final_decision', 'phone']
 
@@ -149,16 +149,13 @@ def process_data_mibao(df):
     df['xiaobaiScore'] = df['xiaobaiScore'].map(lambda x: float(x) if str(x) > '0' else 0)
     df['zmxyScore'] = df['zmxyScore'].map(lambda x: float(x) if str(x) > '0' else 0)
 
-
-
     # 只判断是否空值的特征处理
     features_cat_null = ['bounds_example_id', 'bounds_example_no', 'distance', 'fingerprint', 'added_service',
                          'recommend_code', 'regist_device_info', 'company', 'company_phone', 'workplace',
                          'idcard_pros', ]
     for feature in features_cat_null:
         df[feature].fillna(0, inplace=True)
-        df[feature] = np.where(df[feature].isin(['', ' ',0]), 0, 1)
-
+        df[feature] = np.where(df[feature].isin(['', ' ', 0]), 0, 1)
 
     df['deposit'] = np.where(df['deposit'] == 0, 0, 1)
 
@@ -175,7 +172,9 @@ def process_data_mibao(df):
     # 有45个身份证号缺失但审核通过的订单， 舍弃不要。
     df = df[df['cert_no'].notnull()]
 
+
     # 处理芝麻信用分 '>600' 更改成600
+    df['zmxy_score'][df['zmxy_score'].isin(['', ' '])] = 0
     zmf = [0] * len(df)
     xbf = [0] * len(df)
     for row, detail in enumerate(df['zmxy_score'].tolist()):
@@ -273,22 +272,25 @@ def process_data_mibao(df):
     '''
     # merchant 违约率 todo
 
-    df.drop(['user_id', 'state', 'year'], axis=1, inplace=True, errors='ignore')
+    df.drop(['user_id', 'state', 'year', 'cancel_reason', 'check_remark', 'hit_merchant_white_list', 'mibao_result',
+             'tongdun_detail_json', 'order_number'], axis=1, inplace=True, errors='ignore')
 
     return df
 
 
 def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=False):
-    starttime = time.clock()
+    # starttime = time.clock()
     if is_sql:
         sql = "SELECT {} FROM `{}` o WHERE o.{} = {};".format(",".join(features), filename, table, id_value)
-        print(sql)
+        # print(sql)
         df = pd.read_sql_query(sql, engine)
     else:
         df = pd.read_csv(datasets_path + filename + '.csv', encoding='utf-8', engine='python')
         df = df[features]
-    print(filename, time.clock() - starttime)
+    # print(filename, time.clock() - starttime)
     return df
+
+
 '''
 df = order_df.copy()
 df.distance.dtype
@@ -296,6 +298,8 @@ df.distance.fillna(0)
 df.distance.astype(float)
 df['distance'].str.match('')
 '''
+
+
 def get_order_data(order_id=88668, is_sql=False):
     # 读取order表
     features = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
@@ -310,6 +314,8 @@ def get_order_data(order_id=88668, is_sql=False):
     order_number = order_df.at[0, 'order_number']
     all_data_df = order_df.copy()
     order_df.sort_values('distance', inplace=True)
+    if len(all_data_df) == 0:
+        return all_data_df
     # 读取并处理表 user
     features = ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
     user_df = read_mlfile('user', features, 'id', user_id, is_sql)
@@ -405,8 +411,7 @@ def get_order_data(order_id=88668, is_sql=False):
     df = read_mlfile('jimi_order_check_result', ['order_id', 'check_remark'], 'order_id', order_id, is_sql)
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
-
-    #特殊字符串的列预先处理下：
+    # 特殊字符串的列预先处理下：
     features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check']
     # df = all_data_df.copy()
     for feature in features:
@@ -415,5 +420,6 @@ def get_order_data(order_id=88668, is_sql=False):
         all_data_df[feature].fillna('0', inplace=True)
         all_data_df[feature] = np.where(all_data_df[feature].str.contains('1'), 1, 0)
         # print(all_data_df[feature].value_counts())
+
 
     return all_data_df
