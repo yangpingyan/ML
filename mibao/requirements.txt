@@ -1,0 +1,11 @@
+flask
+wheel
+pandas
+numpy
+scipy
+lightgbm
+flask
+sqlalchemy
+pymysql
+gevent
+sshtunnel

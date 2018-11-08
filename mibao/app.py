@@ -17,21 +17,11 @@ warnings.filterwarnings('ignore')
 
 def model_test():
     pass
-def get_workdir(projectid):
-    try:
-        cur_dir = os.path.dirname(__file__)
-    except:
-        cur_dir = os.getcwd()
-    if cur_dir.find(projectid) == -1:
-        cur_dir = os.path.join(cur_dir, projectid)
-    return cur_dir
 
 
-# 设置随机种子
-# np.random.seed(88)
-# ## 获取数据
+# 获取数据
 PROJECT_ID = 'mibao'
-workdir = get_workdir(PROJECT_ID)
+workdir = mlutils.get_workdir(PROJECT_ID)
 df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
 print("数据量: {}".format(df.shape))
 x = df.drop(['target', 'order_id'], axis=1)
