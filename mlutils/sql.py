@@ -7,11 +7,18 @@
 from sshtunnel import SSHTunnelForwarder
 import pandas as pd
 import os
-import mlutils
+# import mlutils
 import json
 from sqlalchemy import create_engine
 
-workdir = mlutils.get_workdir('mibao')
+def get_workdir(projectid):
+    cur_dir = os.getcwd()
+    print(cur_dir)
+    if cur_dir.find(projectid) == -1:
+        cur_dir = os.path.join(cur_dir, projectid)
+    return cur_dir
+
+workdir = get_workdir('mibao')
 sql_file = os.path.join(workdir, 'sql_mibao.json')
 ssh_pkey = os.path.join(workdir, 'sql_pkey')
 
@@ -31,9 +38,8 @@ def sql_connect(sql_file, ssh_pkey=None):
                                 ssh_pkey=ssh_pkey,
                                 remote_bind_address=(sql_address, 3306))
 
-    server.start()  # start ssh sever
+    server.start()
 
-    sql_engine = create_engine('mysql+pymysql://{}:{}@{}:3306'.format(sql_user, sql_password, sql_address))
+    sql_engine = create_engine('mysql+pymysql://{}:{}@127.0.0.1:{}/mibao_rds'.format(sql_user, sql_password, server.local_bind_port))
 
-    sql = """SELECT * from order o where o.id = 88668;"""
-    df = pd.read_sql(sql, sql_engine)
+    pd.read_sql("SELECT * from `order` o where o.id = 88668", sql_engine)

@@ -4,7 +4,6 @@
 # @Author : yangpingyan@gmail.com
 import os
 
-
 def get_workdir(projectid):
     cur_dir = os.getcwd()
     print(cur_dir)
