@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import os
 from sklearn.preprocessing import LabelEncoder
 import warnings
-from mlutils import *
+import mlutils
 
 import featuretools as ft
 import json
@@ -31,16 +31,14 @@ csv.field_size_limit(100000000)
 
 PROJECT_ID = 'mibao'
 # ## 获取数据
-if os.getcwd().find(PROJECT_ID) == -1:
-    os.chdir(PROJECT_ID)
-datasets_path = os.getcwd() + '\\datasets\\'
-df = pd.read_csv(datasets_path + "mibao.csv", encoding='utf-8', engine='python')
+workdir = mlutils.get_workdir(PROJECT_ID)
+df = pd.read_csv(os.path.join(workdir,'datasets', "mibao.csv"), encoding='utf-8', engine='python')
 
-print("data shape {}".format(df.shape))
-df = process_data_mibao(df)
+print("original data shape {}".format(df.shape))
+df = mlutils.process_data_mibao(df)
 
-df.to_csv(datasets_path + "mibaodata_ml.csv", index=False)
-missing_values_table(df)
+df.to_csv(os.path.join(workdir, "mibaodata_ml.csv") , index=False)
+mlutils.missing_values_table(df)
 print("mibaodata_ml.csv保存的数据量: {}".format(df.shape))
 # In[1]
 

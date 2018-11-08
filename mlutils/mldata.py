@@ -2,6 +2,7 @@
 # coding: utf-8
 # @Time : 2018/9/28 16:42
 # @Author : yangpingyan@gmail.com
+import functools
 
 import pandas as pd
 from sqlalchemy import create_engine
@@ -10,6 +11,41 @@ import numpy as np
 import re
 import time
 import os
+
+import MySQLdb
+from sshtunnel import SSHTunnelForwarder
+import pandas as pd
+
+
+def file2dict(path):
+    with open(path, encoding='utf-8') as f:
+        return json.load(f)
+
+rdsinfo = file2dict('pannardspw.json')
+sshhost = rdsinfo['sshhost']
+sshpassword = rdsinfo['sshpassword']
+sshbindaddress = rdsinfo['sshbindaddress']
+rdsuser = rdsinfo['rdsuser']
+rdspassword = rdsinfo['rdspassword']
+rdsdb = rdsinfo['rdsdb']
+
+server = SSHTunnelForwarder((sshhost, 22),  # B机器的配置
+                            ssh_username="root",
+                            ssh_password=sshpassword,
+                            remote_bind_address=(sshbindaddress, 3388))  # A机器的配置
+
+server.start()  # start ssh sever
+
+conn = MySQLdb.connect(host='127.0.0.1',  # 此处必须是是127.0.0.1
+                       port=server.local_bind_port,
+                       user=rdsuser,
+                       passwd=rdspassword,
+                       db=rdsdb)
+cursor = conn.cursor()
+
+sql = """SELECT * from order o where o.id = 88668;"""
+df = pd.read_sql(sql, conn)
+
 
 # 初始化数据库连接，使用pymysql模块
 engine = create_engine('mysql+pymysql://root:qawsedrf@localhost:3306/mibao')
@@ -276,7 +312,6 @@ def process_data_mibao(df):
              'tongdun_detail_json', 'order_number'], axis=1, inplace=True, errors='ignore')
 
     return df
-
 
 def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=False):
     # starttime = time.clock()

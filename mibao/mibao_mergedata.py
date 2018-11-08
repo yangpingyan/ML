@@ -26,9 +26,9 @@ if os.getcwd().find(PROJECT_ID) == -1:
     os.chdir(PROJECT_ID)
 datasets_path = os.getcwd() + '\\datasets\\'
 
-# starttime = time.clock()
-# all_data_df_sql = get_order_data(order_id=88668, is_sql=True)
-# print(time.clock()-starttime)
+starttime = time.clock()
+all_data_df_sql = get_order_data(order_id=88668, is_sql=True)
+print(time.clock()-starttime)
 
 starttime = time.clock()
 all_data_df = get_order_data()

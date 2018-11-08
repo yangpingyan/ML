@@ -38,3 +38,6 @@ requests
 tushare
 openpyxl
 pywinauto==0.6.4
+gevent
+sshtunnel
+MySQLdb

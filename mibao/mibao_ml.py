@@ -15,9 +15,10 @@ from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.model_selection import KFold
 import lightgbm as lgb
 import random
-from mlutils import *
+import mlutils
 import pickle
 from sklearn.externals import joblib
+import json
 
 
 # to make output display better
@@ -30,15 +31,14 @@ plt.rcParams['ytick.labelsize'] = 12
 # read large csv file
 time_started = time.clock()
 # 设置随机种子
-np.random.seed(88)
+# np.random.seed(88)
 # ## 获取数据
 PROJECT_ID = 'mibao'
-if os.getcwd().find(PROJECT_ID) == -1:
-    os.chdir(PROJECT_ID)
-datasets_path = os.getcwd() + '\\datasets\\'
-df = pd.read_csv("{}mibaodata_ml.csv".format(datasets_path), encoding='utf-8', engine='python')
-result_df = df[['order_id','target']]
+workdir = mlutils.get_workdir(PROJECT_ID)
+df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
 print("初始数据量: {}".format(df.shape))
+
+result_df = df[['order_id','target']]
 
 features = ['target',
             'merchant_id', 'pay_num',
@@ -69,24 +69,12 @@ features = ['target',
             #'month',
             ]
 
-
 print(list(set(df.columns.tolist()).difference(set(features))))
 df = df[features]
-'''
-feature = 'MONTH(create_time)'
-df[feature].value_counts()
-feature_analyse(df, feature, bins=50)
-df[feature].dtype
-df[df[feature].isnull()].sort_values(by='target').shape
-df.shape
-df[feature].unique()
-df.columns.values
-missing_values_table(df)
-'''
+
 
 x = df.drop(['target'], axis=1)
 y = df['target']
-
 # Splitting the dataset into the Training set and Test set
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
 
@@ -113,7 +101,7 @@ lgb_params_binary_logloss['n_estimators'] = len(ret['binary_logloss-mean'])
 lgb_clf = lgb.LGBMClassifier(**lgb_params_binary_logloss)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-add_score(score_df, 'binary_logloss',y_test, y_pred )
+mlutils.add_score(score_df, 'binary_logloss',y_test, y_pred )
 
 lgb_params_auc = lgb_params.copy()
 ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='auc', seed=42)
@@ -122,11 +110,11 @@ lgb_params_auc['n_estimators'] = len(ret['auc-mean'])
 lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-add_score(score_df, 'auc', y_test, y_pred )
+mlutils.add_score(score_df, 'auc', y_test, y_pred )
 # save model
-pickle.dump(lgb_clf, open('mibao_ml.pkl', 'wb'))
-joblib.dump(value=lgb_clf,filename="mibao_ml.gz",compress=True)
-
+# pickle.dump(lgb_clf, open('mibao_ml.pkl', 'wb'))
+with open('lgb_params.json', 'w') as f:
+    json.dump(lgb_params_auc, f, indent=4)
 
 feature_importances = lgb_clf.feature_importances_
 importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_importances})
@@ -134,10 +122,10 @@ importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
 print(importance_df)
 
 y_pred = lgb_clf.predict(x)
-add_score(score_df, 'auc_alldata',y_test=y, y_pred=y_pred)
+mlutils.add_score(score_df, 'auc_alldata',y_test=y, y_pred=y_pred)
 print(score_df)
 result_df['predict'] = y_pred
-result_df.to_csv(datasets_path + "mibao_mlresult.csv", index=False)
+result_df.to_csv(os.path.join(workdir,"mibao_mlresult.csv"), index=False)
 
 
 # In[1]
@@ -190,7 +178,7 @@ for scoring in scorings:
     lgb_clf = rnd_search.best_estimator_
     lgb_clf.fit(x_train, y_train)
     y_pred = lgb_clf.predict(x_test)
-    add_score(score_df, scoring + '_rs', y_test, y_pred)
+    mlutils.add_score(score_df, scoring + '_rs', y_test, y_pred)
     print(score_df)
 
 # feature_importances = rnd_search.best_estimator_.feature_importances_
@@ -198,7 +186,7 @@ for scoring in scorings:
 # importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
 # print(importance_df)
 print('run time: {:.2f}'.format(time.clock() - time_started))
-score_df.sort_values(by='accuracy', inplace=True)
+score_df.sort_values(by='recall', inplace=True)
 score_df
 
 # In[2]
@@ -267,3 +255,15 @@ plt.plot(fpr, tpr, linewidth=1, label="ROC")
 plt.title("ROC and PR 曲线图")
 plt.legend()
 plt.show()
+
+'''
+feature = 'MONTH(create_time)'
+df[feature].value_counts()
+feature_analyse(df, feature, bins=50)
+df[feature].dtype
+df[df[feature].isnull()].sort_values(by='target').shape
+df.shape
+df[feature].unique()
+df.columns.values
+missing_values_table(df)
+'''

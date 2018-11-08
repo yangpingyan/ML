@@ -1,30 +1,22 @@
 # coding:utf8
-import re
 import os
 import time
-import datetime
 from argparse import ArgumentParser
-from importlib import reload
-
-import pytesseract
-from PIL import Image
 from flask import Flask, request, jsonify
 from flask import make_response
-from flask import abort
-import pickle
 import pandas as pd
-import numpy as np
 import json
+import lightgbm as lgb
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 import mlutils
 import warnings
-import random
-from sklearn.externals import joblib
+from gevent.pywsgi import WSGIServer
 
 warnings.filterwarnings('ignore')
 
-
-# reload(mlutils)
-
+def model_test():
+    pass
 def get_workdir(projectid):
     try:
         cur_dir = os.path.dirname(__file__)
@@ -35,16 +27,38 @@ def get_workdir(projectid):
     return cur_dir
 
 
-app = Flask(__name__)
-cur_dir = get_workdir('mibao')
-clf = pickle.load(open(os.path.join(cur_dir, 'mibao_ml.pkl'), 'rb'))
-clf = joblib.load(filename="mibao_ml.gz")
-all_data_df = pd.read_csv(os.path.join(cur_dir, 'datasets', 'mibaodata_ml.csv'), encoding='utf-8', engine='python')
-result_df = pd.read_csv(os.path.join(cur_dir, 'datasets', 'mibao_mlresult.csv'), encoding='utf-8', engine='python')
+# 设置随机种子
+# np.random.seed(88)
+# ## 获取数据
+PROJECT_ID = 'mibao'
+workdir = get_workdir(PROJECT_ID)
+df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
+print("数据量: {}".format(df.shape))
+x = df.drop(['target', 'order_id'], axis=1)
+y = df['target']
 
-x = all_data_df.drop(['target', 'order_id'], axis=1, errors='ignore')
-y_pred = clf.predict(x)
-result_df['pred_pickle'] = y_pred
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
+
+# Create a training and testing dataset
+# train_set = lgb.Dataset(data=x_train, label=y_train)
+# test_set = lgb.Dataset(data=x_test, label=y_test)
+
+with open('lgb_params.json', 'r') as f:
+    lgb_params_auc = json.load(f)
+
+lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)
+lgb_clf.fit(x_train, y_train)
+y_pred = lgb_clf.predict(x_test)
+accuracy_score = accuracy_score(y_test, y_pred)
+print("auc score:", accuracy_score)
+assert accuracy_score>0.96
+# 测试预测能力
+# all_data_df = pd.read_csv(os.path.join(workdir, 'mibaodata_ml.csv'), encoding='utf-8', engine='python')
+# result_df = pd.read_csv(os.path.join(workdir, 'mibao_mlresult.csv'), encoding='utf-8', engine='python')
+# y_pred = lgb_clf.predict(x)
+# result_df['pred_pickle'] = y_pred
+# diff_df = result_df[result_df['predict'] != result_df['pred_pickle']]
+
 # In[]
 '''
 all_data_df = pd.read_csv(os.path.join(cur_dir, 'datasets', 'mibaodata_ml.csv'), encoding='utf-8', engine='python')
@@ -64,29 +78,32 @@ for order_id in order_ids:
     if(result > 0):
         print("error with oder_id {}".format(order_id))
 '''
+app = Flask(__name__)
 
 
 @app.route('/ml/<int:order_id>', methods=['GET'])
 def get_predict_result(order_id):
-    print("order_id:", order_id)
+    starttime = time.clock()
     df = mlutils.get_order_data(order_id, is_sql=True)
-    print(df)
     if len(df) == 0:
         return make_response(jsonify({'error': 'order_id error'}), 403)
     df = mlutils.process_data_mibao(df)
+
     df.drop(['order_id'], axis=1, inplace=True, errors='ignore')
+    # print(list(set(all_data_df.columns.tolist()).difference(set(df.columns.tolist()))))
+
     if len(df.columns) != 54:
         return make_response(jsonify({'error': 'data error'}), 404)
     # order_data = np.array(df).reshape(1, -1)
-    y_pred = clf.predict(df)
-    print("y_pred:",  y_pred[0])
-    print("reference:", result_df[result_df['order_id'] == order_id])
+    y_pred = lgb_clf.predict(df)
+    print("y_pred:", y_pred[0])
+    # print("reference:", result_df[result_df['order_id'] == order_id])
     return jsonify({'ml_result': int(y_pred[0])}), 201
 
 
 @app.errorhandler(404)
-def not_found(error):
-    return make_response(jsonify({'error': 'Not found'}), 404)
+def not_found():
+    return make_response(jsonify({'error': 'bug'}), 404)
 
 
 if __name__ == '__main__':
@@ -94,8 +111,6 @@ if __name__ == '__main__':
     opt.add_argument('--model', default='gevent')
     args = opt.parse_args()
     if args.model == 'gevent':
-        from gevent.pywsgi import WSGIServer
-
         http_server = WSGIServer(('0.0.0.0', 5000), app)
         print('listen on 0.0.0.0:5000')
         http_server.serve_forever()
