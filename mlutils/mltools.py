@@ -7,6 +7,7 @@ import os
 
 def get_workdir(projectid):
     cur_dir = os.getcwd()
+    print(cur_dir)
     if cur_dir.find(projectid) == -1:
         cur_dir = os.path.join(cur_dir, projectid)
     return cur_dir
