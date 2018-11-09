@@ -8,19 +8,15 @@ import json
 import numpy as np
 import re
 import os
-from sql import sql_connect
+from sql import *
+from mltools import *
 
-
+workdir = get_workdir()
 
 # 初始化数据库连接，使用pymysql模块
-sql_engine = sql_connect()
-PROJECT_ID = 'mibao'
-# ## 获取数据
-if os.getcwd().find(PROJECT_ID) == -1:
-    os.chdir(PROJECT_ID)
-datasets_path = os.getcwd() + '\\datasets\\'
-
-
+sql_file = os.path.join(workdir, 'sql_mibao.json')
+ssh_pkey = os.path.join(workdir, 'sql_pkey')
+sql_engine = sql_connect(sql_file, ssh_pkey)
 
 def save_all_tables_mibao():
     sql = ''' SELECT table_name FROM information_schema.`TABLES` WHERE table_schema="mibao"; '''
@@ -30,29 +26,11 @@ def save_all_tables_mibao():
         print(table)
         sql = "SELECT * FROM `{}`;".format(table)
         df = pd.read_sql_query(sql, sql_engine)
-        df.to_csv("{}{}.csv".format(datasets_path, table), index=False)
+        df.to_csv("{}.csv".format(os.path.join(workdir, table)), index=False)
 
     sql = ''' SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns  WHERE table_schema='mibao'; '''
     df = pd.read_sql_query(sql, sql_engine)
     df.to_csv("mibao_comment.csv", index=False)
-
-
-# 找出有user_id的表，然后只保存该表中有产生订单的user_id的相关数据
-def read_save_infos_only_ordered():
-    sql = ''' SELECT table_name, column_name FROM information_schema.columns  WHERE table_schema='mibao' AND column_name='user_id'; '''
-    tables_df = pd.read_sql_query(sql, sql_engine)
-    tables = tables_df['table_name'].values.tolist()
-    tables.remove('user_bonus')
-    df = pd.read_csv("{}order.csv".format(datasets_path))
-    user_ids = df['user_id'].unique()
-    df = pd.read_csv("{}user.csv".format(datasets_path))
-    df = df[df['id'].isin(user_ids)]
-    df.to_csv("D:/datasets_ml/{}.csv".format("user"), index=False)
-    for table in tables:
-        print(table)
-        df = pd.read_csv("{}{}.csv".format(datasets_path, table))
-        df = df[df['user_id'].isin(user_ids)]
-        df.to_csv("D:/datasets_ml/{}.csv".format(table), index=False)
 
 
 def process_data_mibao(df):
@@ -258,7 +236,7 @@ def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=Fals
         # print(sql)
         df = pd.read_sql_query(sql, sql_engine)
     else:
-        df = pd.read_csv(datasets_path + filename + '.csv', encoding='utf-8', engine='python')
+        df = pd.read_csv(os.path.join(workdir, filename + '.csv'), encoding='utf-8', engine='python')
         df = df[features]
     # print(filename, time.clock() - starttime)
     return df

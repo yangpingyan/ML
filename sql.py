@@ -36,6 +36,9 @@ def sql_connect(sql_file, ssh_pkey=None):
     sql_user = sql_info['sql_user']
     sql_password = sql_info['sql_password']
     if ssh_pkey is None:
+        sql_engine = create_engine(
+            'mysql+pymysql://{}:{}@{}:3306/mibao_rds'.format(sql_user, sql_password, sql_address))
+    else:
         server = SSHTunnelForwarder((ssh_host, 22),  # ssh的配置
                                     ssh_username=ssh_user,
                                     ssh_pkey=ssh_pkey,
@@ -43,9 +46,6 @@ def sql_connect(sql_file, ssh_pkey=None):
         server.start()
         sql_engine = create_engine(
             'mysql+pymysql://{}:{}@127.0.0.1:{}/mibao_rds'.format(sql_user, sql_password, server.local_bind_port))
-    else:
-        sql_engine = create_engine(
-            'mysql+pymysql://{}:{}@{}:3306/mibao_rds'.format(sql_user, sql_password, sql_address))
 
     return sql_engine
     # pd.read_sql("SELECT * from `order` o where o.id = 88668", sql_engine)

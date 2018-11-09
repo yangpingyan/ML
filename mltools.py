@@ -4,11 +4,10 @@
 # @Author : yangpingyan@gmail.com
 import os
 
-def get_workdir(projectid):
+
+def get_workdir():
     try:
         workdir = os.path.abspath(__path__)
     except:
         workdir = os.getcwd()
-        if workdir.find(projectid) == -1:
-            workdir = os.path.join(workdir, projectid)
     return workdir
