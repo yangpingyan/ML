@@ -11,6 +11,7 @@ import os
 from sql import *
 from mltools import *
 import time
+from log import log
 
 workdir = get_workdir()
 
@@ -246,6 +247,7 @@ def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=Fals
 
 def get_order_data(order_id=88668, is_sql=False):
     # 读取order表
+    log.debug("get_oder_data")
     features = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
                 'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
                 'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
