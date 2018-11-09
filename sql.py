@@ -10,6 +10,7 @@ import os
 # import mlutils
 import json
 from sqlalchemy import create_engine
+from log import log
 
 '''
 def get_workdir(projectid):
@@ -38,6 +39,7 @@ def sql_connect(sql_file, ssh_pkey=None):
     if ssh_pkey is None:
         sql_engine = create_engine(
             'mysql+pymysql://{}:{}@{}:3306/mibao_rds'.format(sql_user, sql_password, sql_address))
+        log.debug("Access MySQL directly")
     else:
         server = SSHTunnelForwarder((ssh_host, 22),  # ssh的配置
                                     ssh_username=ssh_user,
@@ -46,6 +48,7 @@ def sql_connect(sql_file, ssh_pkey=None):
         server.start()
         sql_engine = create_engine(
             'mysql+pymysql://{}:{}@127.0.0.1:{}/mibao_rds'.format(sql_user, sql_password, server.local_bind_port))
+        log.debug("Access MySQL with SSH tunnel forward")
 
     return sql_engine
     # pd.read_sql("SELECT * from `order` o where o.id = 88668", sql_engine)

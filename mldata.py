@@ -10,6 +10,7 @@ import re
 import os
 from sql import *
 from mltools import *
+import time
 
 workdir = get_workdir()
 
@@ -17,6 +18,7 @@ workdir = get_workdir()
 sql_file = os.path.join(workdir, 'sql_mibao.json')
 ssh_pkey = os.path.join(workdir, 'sql_pkey')
 sql_engine = sql_connect(sql_file, ssh_pkey)
+
 
 def save_all_tables_mibao():
     sql = ''' SELECT table_name FROM information_schema.`TABLES` WHERE table_schema="mibao"; '''
@@ -124,7 +126,6 @@ def process_data_mibao(df):
     # 有45个身份证号缺失但审核通过的订单， 舍弃不要。
     df = df[df['cert_no'].notnull()]
 
-
     # 处理芝麻信用分 '>600' 更改成600
     df['zmxy_score'][df['zmxy_score'].isin(['', ' '])] = 0
     zmf = [0] * len(df)
@@ -222,12 +223,13 @@ def process_data_mibao(df):
     missing_values_table(df)
     df.shape
     '''
-    # merchant 违约率 todo
+    # merchant 违约率
 
     df.drop(['user_id', 'state', 'year', 'cancel_reason', 'check_remark', 'hit_merchant_white_list', 'mibao_result',
              'tongdun_detail_json', 'order_number'], axis=1, inplace=True, errors='ignore')
 
     return df
+
 
 def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=False):
     # starttime = time.clock()
@@ -240,15 +242,6 @@ def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=Fals
         df = df[features]
     # print(filename, time.clock() - starttime)
     return df
-
-
-'''
-df = order_df.copy()
-df.distance.dtype
-df.distance.fillna(0)
-df.distance.astype(float)
-df['distance'].str.match('')
-'''
 
 
 def get_order_data(order_id=88668, is_sql=False):
@@ -371,6 +364,5 @@ def get_order_data(order_id=88668, is_sql=False):
         all_data_df[feature].fillna('0', inplace=True)
         all_data_df[feature] = np.where(all_data_df[feature].str.contains('1'), 1, 0)
         # print(all_data_df[feature].value_counts())
-
 
     return all_data_df
