@@ -17,9 +17,9 @@ workdir = get_workdir()
 
 # 初始化数据库连接，使用pymysql模块
 sql_file = os.path.join(workdir, 'sql_mibao.json')
-ssh_pkey = os.path.join(workdir, 'sql_pkey')
-if workdir.find('iCloudDrive'):
-    ssh_pkey = None
+
+ssh_pkey = os.path.join(workdir, 'sql_pkey') if debug_mode is False else None
+
 sql_engine = sql_connect(sql_file, ssh_pkey)
 
 
@@ -246,7 +246,32 @@ def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=Fals
     # print(filename, time.clock() - starttime)
     return df
 
+'''
+获取订单和用户的相关信息只能是用户付款前的数据，涉及到的数据如下：
+表 order： ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
+            'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
+            'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
+            'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
+            'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way',
+            'order_number']
+表 user: ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
+表 bargain_help: ['user_id']
+表 face_id:  ['user_id', 'status']
+表 face_id_liveness: ['order_id', 'status']
+表 user_credit: ['user_id', 'cert_no', 'workplace', 'idcard_pros', 'occupational_identity_type',
+                'company_phone', 'cert_no_expiry_date', 'cert_no_json', ]
+表 user_device: ['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type'],
+表 order_express: ['order_id', 'zmxy_score', 'card_id', 'phone', 'company']
+表 order_detail: ['order_id', 'order_detail']
+表 order_goods: ['order_id', 'price', 'category', 'old_level']
+表 order_phone_book: ['order_id', 'phone_book']
+表 risk_order: ['order_id', 'type', 'result', 'detail_json']
+表 tongdun: ['order_number', 'final_score', 'final_decision']
+表 user_third_party_account: ['user_id']
+表 user_zhima_cert: ['user_id', 'status']
+表 jimi_order_check_result_list: ['order_id', 'check_remark']
 
+'''
 def get_order_data(order_id=88668, is_sql=False):
     # 读取order表
     log.debug("get_oder_data")

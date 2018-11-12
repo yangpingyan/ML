@@ -3,6 +3,10 @@
 # @Time : 2018/11/7 10:34 
 # @Author : yangpingyan@gmail.com
 import os
+debug_mode = True
+
+# configure debug_mode automatically just for convenience
+
 
 
 def get_workdir():

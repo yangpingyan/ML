@@ -8,17 +8,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from sklearn.preprocessing import LabelEncoder
 import warnings
-
-import featuretools as ft
 import json
+from explore_data_utils import *
+from mldata import *
+from mltools import *
 
 # Suppress warnings
-from explore_data_utils import missing_values_table
-from mldata import process_data_mibao
-from mltools import get_workdir
-
 warnings.filterwarnings('ignore')
 # to make output display better
 pd.set_option('display.max_columns', 10)

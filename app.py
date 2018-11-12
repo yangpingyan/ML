@@ -44,7 +44,7 @@ assert accuracy_score>0.96
 
 app = Flask(__name__)
 
-@app.route('/ml/<int:order_id>', methods=['GET'])
+@app.route('/ml_result/<int:order_id>', methods=['GET'])
 def get_predict_result(order_id):
     df = get_order_data(order_id, is_sql=True)
     if len(df) == 0:
