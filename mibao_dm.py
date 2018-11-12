@@ -10,12 +10,15 @@ import matplotlib.pyplot as plt
 import os
 from sklearn.preprocessing import LabelEncoder
 import warnings
-import mlutils
 
 import featuretools as ft
 import json
 
 # Suppress warnings
+from explore_data_utils import missing_values_table
+from mldata import process_data_mibao
+from mltools import get_workdir
+
 warnings.filterwarnings('ignore')
 # to make output display better
 pd.set_option('display.max_columns', 10)
@@ -29,16 +32,15 @@ plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 # read large csv file
 csv.field_size_limit(100000000)
 
-PROJECT_ID = 'mibao'
 # ## 获取数据
-workdir = mlutils.get_workdir(PROJECT_ID)
+workdir = get_workdir()
 df = pd.read_csv(os.path.join(workdir,'datasets', "mibao.csv"), encoding='utf-8', engine='python')
 
 print("original data shape {}".format(df.shape))
-df = mlutils.process_data_mibao(df)
+df = process_data_mibao(df)
 
 df.to_csv(os.path.join(workdir, "mibaodata_ml.csv") , index=False)
-mlutils.missing_values_table(df)
+missing_values_table(df)
 print("mibaodata_ml.csv保存的数据量: {}".format(df.shape))
 # In[1]
 

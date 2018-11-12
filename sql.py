@@ -12,19 +12,6 @@ import json
 from sqlalchemy import create_engine
 from log import log
 
-'''
-def get_workdir(projectid):
-    cur_dir = os.getcwd()
-    if cur_dir.find(projectid) == -1:
-        cur_dir = os.path.join(cur_dir, projectid)
-    return cur_dir
-
-
-workdir = get_workdir('mibao')
-sql_file = os.path.join(workdir, 'sql_mibao.json')
-ssh_pkey = os.path.join(workdir, 'sql_pkey')
-'''
-
 
 def sql_connect(sql_file, ssh_pkey=None):
     '''连接数据库'''

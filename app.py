@@ -40,39 +40,9 @@ accuracy_score = accuracy_score(y_test, y_pred)
 print("auc score:", accuracy_score)
 assert accuracy_score>0.96
 
-# In[]
-def model_test():
-    # order_id =9085, 9098的crate_time 是错误的
-    order_ids = random.sample(all_data_df['order_id'].tolist(), 100)
-    order_ids = all_data_df[all_data_df['order_id']>1431]['order_id'].tolist()
-    order_ids = [126, 127, 128, 140, 198, 223, 278, 284, 486, 492, 494, 558, 594, 878, 901]
-    order_id = 126
-    error_ids = []
-    for order_id in order_ids:
-        print(order_id)
-        df = get_order_data(order_id, is_sql=True)
-        processed_df = process_data_mibao(df.copy())
-        cmp_df = pd.concat([all_data_df, processed_df])
-        cmp_df = cmp_df[cmp_df['order_id'] == order_id]
-        result = cmp_df.std().sum()
-        if(result > 0):
-            error_ids.append(order_id)
-            print("error with oder_id {}".format(error_ids))
 
-    pass
-
-model_test()
-# 测试预测能力
-# all_data_df = pd.read_csv(os.path.join(workdir, 'mibaodata_ml.csv'), encoding='utf-8', engine='python')
-# result_df = pd.read_csv(os.path.join(workdir, 'mibao_mlresult.csv'), encoding='utf-8', engine='python')
-# y_pred = lgb_clf.predict(x)
-# result_df['pred_pickle'] = y_pred
-# diff_df = result_df[result_df['predict'] != result_df['pred_pickle']]
-
-# In[]
 
 app = Flask(__name__)
-
 
 @app.route('/ml/<int:order_id>', methods=['GET'])
 def get_predict_result(order_id):

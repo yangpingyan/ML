@@ -18,6 +18,8 @@ workdir = get_workdir()
 # 初始化数据库连接，使用pymysql模块
 sql_file = os.path.join(workdir, 'sql_mibao.json')
 ssh_pkey = os.path.join(workdir, 'sql_pkey')
+if workdir.find('iCloudDrive'):
+    ssh_pkey = None
 sql_engine = sql_connect(sql_file, ssh_pkey)
 
 
