@@ -23,7 +23,6 @@ from log import log
 import random
 
 
-log.setLevel(logging.INFO)
 warnings.filterwarnings('ignore')
 workdir = get_workdir()
 

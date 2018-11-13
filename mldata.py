@@ -13,15 +13,13 @@ from mltools import *
 import time
 from log import log
 
-workdir = get_workdir()
 
 # 初始化数据库连接，使用pymysql模块
 sql_file = os.path.join(workdir, 'sql_mibao.json')
-
-ssh_pkey = os.path.join(workdir, 'sql_pkey') if debug_mode is False else None
-
+ssh_pkey = os.path.join(workdir, 'sql_pkey') if debug_mode else None
 sql_engine = sql_connect(sql_file, ssh_pkey)
 
+# In[]
 
 def save_all_tables_mibao():
     sql = ''' SELECT table_name FROM information_schema.`TABLES` WHERE table_schema="mibao"; '''
@@ -282,13 +280,14 @@ def get_order_data(order_id=88668, is_sql=False):
                 'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way',
                 'order_number']
     order_df = read_mlfile('order', features, 'id', order_id, is_sql)
+    if len(order_df) == 0:
+        return order_df
     order_df.rename(columns={'id': 'order_id'}, inplace=True)
     user_id = order_df.at[0, 'user_id']
     order_number = order_df.at[0, 'order_number']
     all_data_df = order_df.copy()
     order_df.sort_values('distance', inplace=True)
-    if len(all_data_df) == 0:
-        return all_data_df
+
     # 读取并处理表 user
     features = ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
     user_df = read_mlfile('user', features, 'id', user_id, is_sql)

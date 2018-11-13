@@ -23,7 +23,7 @@ def sql_connect(sql_file, ssh_pkey=None):
     sql_address = sql_info['sql_address']
     sql_user = sql_info['sql_user']
     sql_password = sql_info['sql_password']
-    if ssh_pkey is None:
+    if ssh_pkey == None:
         sql_engine = create_engine(
             'mysql+pymysql://{}:{}@{}:3306/mibao_rds'.format(sql_user, sql_password, sql_address))
         log.debug("Access MySQL directly")
