@@ -8,16 +8,13 @@ import json
 import numpy as np
 import re
 import os
-from sql import *
+from sql import sql_engine
 from mltools import *
 import time
 from log import log
 
 
-# 初始化数据库连接，使用pymysql模块
-sql_file = os.path.join(workdir, 'sql_mibao.json')
-ssh_pkey = os.path.join(workdir, 'sql_pkey') if debug_mode else None
-sql_engine = sql_connect(sql_file, ssh_pkey)
+
 
 # In[]
 
@@ -236,7 +233,6 @@ def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=Fals
     # starttime = time.clock()
     if is_sql:
         sql = "SELECT {} FROM `{}` o WHERE o.{} = {};".format(",".join(features), filename, table, id_value)
-        # print(sql)
         df = pd.read_sql_query(sql, sql_engine)
     else:
         df = pd.read_csv(os.path.join(workdir, filename + '.csv'), encoding='utf-8', engine='python')
