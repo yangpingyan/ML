@@ -5,6 +5,17 @@
 import os
 from log import log
 
+def get_csv_files(dir_path):
+    '''获取dir_path当前目录下的所有csv文件（不包含子目录）'''
+    L = []
+    #    for root, dirs, files in os.walk(file_dir):  #搜索子目录
+    files = os.listdir(dir_path)
+    for file in files:
+        if os.path.splitext(file)[1] == '.csv' \
+            and file.startswith('.') is False \
+            and file.startswith('~') is False:
+            L.append(os.path.join(dir_path, file))
+    return L
 
 def get_workdir():
     try:

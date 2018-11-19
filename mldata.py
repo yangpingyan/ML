@@ -8,21 +8,19 @@ import json
 import numpy as np
 import re
 import os
-from sql import sql_engine
-from mltools import *
 import time
 from log import log
+from sql import sql_engine
+from mltools import *
 
+sql_tables = ['bargain_help', 'face_id', 'face_id_liveness', 'jimi_order_check_result', 'mibao',
+              'order', 'order_detail', 'order_express', 'order_goods', 'order_phone_book',
+              'risk_order', 'risk_white_list', 'tongdun', 'user', 'user_credit', 'user_device',
+              'user_third_party_account', 'user_zhima_cert']
 
-
-
-# In[]
 
 def save_all_tables_mibao():
-    sql = ''' SELECT table_name FROM information_schema.`TABLES` WHERE table_schema="mibao"; '''
-    tables_df = pd.read_sql_query(sql, sql_engine)
-    tables = tables_df['table_name'].values
-    for table in tables:
+    for table in sql_tables:
         print(table)
         sql = "SELECT * FROM `{}`;".format(table)
         df = pd.read_sql_query(sql, sql_engine)
@@ -32,6 +30,8 @@ def save_all_tables_mibao():
     df = pd.read_sql_query(sql, sql_engine)
     df.to_csv("mibao_comment.csv", index=False)
 
+
+# In[]
 
 def process_data_mibao(df):
     # 取phone前3位
@@ -233,12 +233,14 @@ def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=Fals
     # starttime = time.clock()
     if is_sql:
         sql = "SELECT {} FROM `{}` o WHERE o.{} = {};".format(",".join(features), filename, table, id_value)
+        # print(sql)
         df = pd.read_sql_query(sql, sql_engine)
     else:
         df = pd.read_csv(os.path.join(workdir, filename + '.csv'), encoding='utf-8', engine='python')
         df = df[features]
     # print(filename, time.clock() - starttime)
     return df
+
 
 '''
 获取订单和用户的相关信息只能是用户付款前的数据，涉及到的数据如下：
@@ -266,6 +268,8 @@ def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=Fals
 表 jimi_order_check_result_list: ['order_id', 'check_remark']
 
 '''
+
+
 def get_order_data(order_id=88668, is_sql=False):
     # 读取order表
     log.debug("get_oder_data")
@@ -274,7 +278,7 @@ def get_order_data(order_id=88668, is_sql=False):
                 'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
                 'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
                 'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way',
-                'order_number']
+                'order_number', 'joke']
     order_df = read_mlfile('order', features, 'id', order_id, is_sql)
     if len(order_df) == 0:
         return order_df
