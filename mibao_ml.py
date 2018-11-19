@@ -15,10 +15,12 @@ from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.model_selection import KFold
 import lightgbm as lgb
 import random
-import mlutils
+
 import pickle
 from sklearn.externals import joblib
 import json
+from mltools import *
+from explore_data_utils import *
 
 
 # to make output display better
@@ -33,8 +35,6 @@ time_started = time.clock()
 # 设置随机种子
 # np.random.seed(88)
 # ## 获取数据
-PROJECT_ID = 'mibao'
-workdir = mlutils.get_workdir(PROJECT_ID)
 df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
 print("初始数据量: {}".format(df.shape))
 
@@ -101,7 +101,7 @@ lgb_params_binary_logloss['n_estimators'] = len(ret['binary_logloss-mean'])
 lgb_clf = lgb.LGBMClassifier(**lgb_params_binary_logloss)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-mlutils.add_score(score_df, 'binary_logloss',y_test, y_pred )
+add_score(score_df, 'binary_logloss',y_test, y_pred )
 
 lgb_params_auc = lgb_params.copy()
 ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='auc', seed=42)
@@ -110,7 +110,7 @@ lgb_params_auc['n_estimators'] = len(ret['auc-mean'])
 lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-mlutils.add_score(score_df, 'auc', y_test, y_pred )
+add_score(score_df, 'auc', y_test, y_pred )
 # save model
 # pickle.dump(lgb_clf, open('mibao_ml.pkl', 'wb'))
 with open('lgb_params.json', 'w') as f:
@@ -122,10 +122,10 @@ importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
 print(importance_df)
 
 y_pred = lgb_clf.predict(x)
-mlutils.add_score(score_df, 'auc_alldata',y_test=y, y_pred=y_pred)
+add_score(score_df, 'auc_alldata',y_test=y, y_pred=y_pred)
 print(score_df)
-result_df['predict'] = y_pred
-result_df.to_csv(os.path.join(workdir,"mibao_mlresult.csv"), index=False)
+# result_df['predict'] = y_pred
+# result_df.to_csv(os.path.join(workdir,"mibao_mlresult.csv"), index=False)
 
 
 # In[1]
@@ -178,7 +178,7 @@ for scoring in scorings:
     lgb_clf = rnd_search.best_estimator_
     lgb_clf.fit(x_train, y_train)
     y_pred = lgb_clf.predict(x_test)
-    mlutils.add_score(score_df, scoring + '_rs', y_test, y_pred)
+    add_score(score_df, scoring + '_rs', y_test, y_pred)
     print(score_df)
 
 # feature_importances = rnd_search.best_estimator_.feature_importances_

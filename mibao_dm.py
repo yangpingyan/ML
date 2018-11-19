@@ -29,8 +29,7 @@ plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
 csv.field_size_limit(100000000)
 
 # ## 获取数据
-workdir = get_workdir()
-df = pd.read_csv(os.path.join(workdir,'datasets', "mibao.csv"), encoding='utf-8', engine='python')
+df = pd.read_csv(os.path.join(workdir, "mibaodata_merged.csv"), encoding='utf-8', engine='python')
 
 print("original data shape {}".format(df.shape))
 df = process_data_mibao(df)

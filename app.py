@@ -18,6 +18,7 @@ from log import log
 import random
 
 warnings.filterwarnings('ignore')
+pd.set_option('display.max_columns', 60)
 
 # 获取训练数据
 all_data_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
@@ -43,10 +44,11 @@ app = Flask(__name__)
 
 @app.route('/ml_result/<int:order_id>', methods=['GET'])
 def get_predict_result(order_id):
+    log.debug("order_id: {}".format(order_id))
     ret_data = 2
     df = get_order_data(order_id, is_sql=True)
     if len(df) != 0:
-        log.debug(df[['order_id', 'state']])
+        log.debug(df)
         df = process_data_mibao(df)
         df.drop(['order_id'], axis=1, inplace=True, errors='ignore')
         # print(list(set(all_data_df.columns.tolist()).difference(set(df.columns.tolist()))))

@@ -13,22 +13,49 @@ from log import log
 from sql import sql_engine
 from mltools import *
 
-sql_tables = ['bargain_help', 'face_id', 'face_id_liveness', 'jimi_order_check_result', 'mibao',
-              'order', 'order_detail', 'order_express', 'order_goods', 'order_phone_book',
-              'risk_order', 'risk_white_list', 'tongdun', 'user', 'user_credit', 'user_device',
-              'user_third_party_account', 'user_zhima_cert']
+sql_tables = ['bargain_help', 'face_id', 'face_id_liveness', 'jimi_order_check_result', 'order', 'order_detail',
+              'order_express', 'order_goods', 'order_phone_book', 'risk_order', 'tongdun', 'user', 'user_credit',
+              'user_device', 'user_third_party_account', 'user_zhima_cert']
+
+order_features = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
+                  'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
+                  'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
+                  'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
+                  'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way',
+                  'order_number', 'joke']
+
+user_features = ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
+bargain_help_features = ['user_id']
+face_id_features = ['user_id', 'status']
+face_id_liveness_features = ['order_id', 'status']
+user_credit_features = ['user_id', 'cert_no', 'workplace', 'idcard_pros', 'occupational_identity_type',
+                        'company_phone', 'cert_no_expiry_date', 'cert_no_json', ]
+user_device_features = ['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type']
+order_express_features = ['order_id', 'zmxy_score', 'card_id', 'phone', 'company']
+order_detail_features = ['order_id', 'order_detail']
+order_goods_features = ['order_id', 'price', 'category', 'old_level']
+order_phone_book_features = ['order_id', 'phone_book']
+risk_order_features = ['order_id', 'type', 'result', 'detail_json']
+tongdun_features = ['order_number', 'final_score', 'final_decision']
+user_third_party_account_features = ['user_id']
+user_zhima_cert_features = ['user_id', 'status']
+jimi_order_check_result_features = ['order_id', 'check_remark']
 
 
 def save_all_tables_mibao():
     for table in sql_tables:
         print(table)
-        sql = "SELECT * FROM `{}`;".format(table)
+        feature_list = eval(table + '_features')
+        sql = "SELECT {} FROM `{}`;".format(",".join(feature_list), table)
         df = pd.read_sql_query(sql, sql_engine)
         df.to_csv("{}.csv".format(os.path.join(workdir, table)), index=False)
 
     sql = ''' SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns  WHERE table_schema='mibao'; '''
     df = pd.read_sql_query(sql, sql_engine)
     df.to_csv("mibao_comment.csv", index=False)
+
+
+# save_all_tables_mibao()
 
 
 # In[]
@@ -224,7 +251,7 @@ def process_data_mibao(df):
     # merchant 违约率
 
     df.drop(['user_id', 'state', 'year', 'cancel_reason', 'check_remark', 'hit_merchant_white_list', 'mibao_result',
-             'tongdun_detail_json', 'order_number'], axis=1, inplace=True, errors='ignore')
+             'tongdun_detail_json', 'order_number', 'joke'], axis=1, inplace=True, errors='ignore')
 
     return df
 
@@ -242,44 +269,10 @@ def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=Fals
     return df
 
 
-'''
-获取订单和用户的相关信息只能是用户付款前的数据，涉及到的数据如下：
-表 order： ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
-            'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
-            'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
-            'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
-            'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way',
-            'order_number']
-表 user: ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
-表 bargain_help: ['user_id']
-表 face_id:  ['user_id', 'status']
-表 face_id_liveness: ['order_id', 'status']
-表 user_credit: ['user_id', 'cert_no', 'workplace', 'idcard_pros', 'occupational_identity_type',
-                'company_phone', 'cert_no_expiry_date', 'cert_no_json', ]
-表 user_device: ['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type'],
-表 order_express: ['order_id', 'zmxy_score', 'card_id', 'phone', 'company']
-表 order_detail: ['order_id', 'order_detail']
-表 order_goods: ['order_id', 'price', 'category', 'old_level']
-表 order_phone_book: ['order_id', 'phone_book']
-表 risk_order: ['order_id', 'type', 'result', 'detail_json']
-表 tongdun: ['order_number', 'final_score', 'final_decision']
-表 user_third_party_account: ['user_id']
-表 user_zhima_cert: ['user_id', 'status']
-表 jimi_order_check_result_list: ['order_id', 'check_remark']
-
-'''
-
-
 def get_order_data(order_id=88668, is_sql=False):
     # 读取order表
-    log.debug("get_oder_data")
-    features = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
-                'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
-                'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
-                'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
-                'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way',
-                'order_number', 'joke']
-    order_df = read_mlfile('order', features, 'id', order_id, is_sql)
+    # log.debug("get_oder_data")
+    order_df = read_mlfile('order', order_features, 'id', order_id, is_sql)
     if len(order_df) == 0:
         return order_df
     order_df.rename(columns={'id': 'order_id'}, inplace=True)
@@ -289,17 +282,16 @@ def get_order_data(order_id=88668, is_sql=False):
     order_df.sort_values('distance', inplace=True)
 
     # 读取并处理表 user
-    features = ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
-    user_df = read_mlfile('user', features, 'id', user_id, is_sql)
+    user_df = read_mlfile('user', user_features, 'id', user_id, is_sql)
     user_df.rename(columns={'id': 'user_id', 'phone': 'phone_user'}, inplace=True)
     all_data_df = pd.merge(all_data_df, user_df, on='user_id', how='left')
 
     # 读取并处理表 bargain_help
-    bargain_help_df = read_mlfile('bargain_help', ['user_id'], 'user_id', user_id, is_sql)
+    bargain_help_df = read_mlfile('bargain_help', bargain_help_features, 'user_id', user_id, is_sql)
     all_data_df['have_bargain_help'] = np.where(all_data_df['user_id'].isin(bargain_help_df['user_id'].values), 1, 0)
 
     # 读取并处理表 face_id
-    face_id_df = read_mlfile('face_id', ['user_id', 'status'], 'user_id', user_id, is_sql)
+    face_id_df = read_mlfile('face_id', face_id_features, 'user_id', user_id, is_sql)
     face_id_df.rename(columns={'status': 'face_check'}, inplace=True)
     all_data_df = pd.merge(all_data_df, face_id_df, on='user_id', how='left')
 
@@ -309,31 +301,26 @@ def get_order_data(order_id=88668, is_sql=False):
     # all_data_df = pd.merge(all_data_df, face_id_liveness_df, on='order_id', how='left')
 
     # 读取并处理表 user_credit
-    user_credit_df = read_mlfile('user_credit',
-                                 ['user_id', 'cert_no', 'workplace', 'idcard_pros', 'occupational_identity_type',
-                                  'company_phone', 'cert_no_expiry_date', 'cert_no_json', ], 'user_id', user_id, is_sql)
+    user_credit_df = read_mlfile('user_credit', user_credit_features, 'user_id', user_id, is_sql)
     all_data_df = pd.merge(all_data_df, user_credit_df, on='user_id', how='left')
 
     # 读取并处理表 user_device
-    user_device_df = read_mlfile('user_device',
-                                 ['user_id', 'device_type', 'regist_device_info', 'regist_useragent', 'ingress_type'],
-                                 'user_id', user_id, is_sql)
+    user_device_df = read_mlfile('user_device', user_device_features, 'user_id', user_id, is_sql)
     user_device_df.rename(columns={'device_type': 'device_type_os'}, inplace=True)
     all_data_df = pd.merge(all_data_df, user_device_df, on='user_id', how='left')
 
     # 读取并处理表 order_express
     # 未处理特征：'country', 'provice', 'city', 'regoin', 'receive_address', 'live_address'
-    order_express_df = read_mlfile('order_express', ['order_id', 'zmxy_score', 'card_id', 'phone', 'company', ],
-                                   'order_id', order_id, is_sql)
+    order_express_df = read_mlfile('order_express', order_express_features, 'order_id', order_id, is_sql)
     order_express_df.drop_duplicates(subset='order_id', inplace=True)
     all_data_df = pd.merge(all_data_df, order_express_df, on='order_id', how='left')
 
     # 读取并处理表 order_detail
-    order_detail_df = read_mlfile('order_detail', ['order_id', 'order_detail'], 'order_id', order_id, is_sql)
+    order_detail_df = read_mlfile('order_detail', order_detail_features, 'order_id', order_id, is_sql)
     all_data_df = pd.merge(all_data_df, order_detail_df, on='order_id', how='left')
 
     # 读取并处理表 order_goods
-    order_goods_df = read_mlfile('order_goods', ['order_id', 'price', 'category', 'old_level'], 'order_id', order_id,
+    order_goods_df = read_mlfile('order_goods', order_goods_features, 'order_id', order_id,
                                  is_sql)
     order_goods_df.drop_duplicates(subset='order_id', inplace=True)
     all_data_df = pd.merge(all_data_df, order_goods_df, on='order_id', how='left')
@@ -355,7 +342,7 @@ def get_order_data(order_id=88668, is_sql=False):
     # df['phone_book'].fillna(value=0, inplace=True)
 
     # 读取并处理表 risk_order
-    risk_order_df = read_mlfile('risk_order', ['order_id', 'type', 'result', 'detail_json'], 'order_id', order_id,
+    risk_order_df = read_mlfile('risk_order', risk_order_features, 'order_id', order_id,
                                 is_sql)
     risk_order_df['result'] = risk_order_df['result'].str.lower()
     for risk_type in ['tongdun', 'mibao', 'guanzhu', 'bai_qi_shi']:
@@ -365,7 +352,7 @@ def get_order_data(order_id=88668, is_sql=False):
             inplace=True)
         all_data_df = pd.merge(all_data_df, tmp_df, on='order_id', how='left')
     # 读取并处理表 tongdun
-    tongdun_df = read_mlfile('tongdun', ['order_number', 'final_score', 'final_decision'], 'order_number', order_number,
+    tongdun_df = read_mlfile('tongdun', tongdun_features, 'order_number', order_number,
                              is_sql)
     all_data_df = pd.merge(all_data_df, tongdun_df, on='order_number', how='left')
 
@@ -376,15 +363,15 @@ def get_order_data(order_id=88668, is_sql=False):
     # all_data_df = pd.merge(all_data_df, counts_df, on='user_id', how='left')
 
     # 读取并处理表 user_zhima_cert
-    df = read_mlfile('user_zhima_cert', ['user_id', 'status'], 'user_id', user_id, is_sql)
+    df = read_mlfile('user_zhima_cert', user_zhima_cert_features, 'user_id', user_id, is_sql)
     all_data_df['zhima_cert_result'] = np.where(all_data_df['user_id'].isin(df['user_id'].tolist()), 1, 0)
 
-    # 读取并处理表 jimi_order_check_result_list
-    df = read_mlfile('jimi_order_check_result', ['order_id', 'check_remark'], 'order_id', order_id, is_sql)
+    # 读取并处理表 jimi_order_check_result
+    df = read_mlfile('jimi_order_check_result', jimi_order_check_result_features, 'order_id', order_id, is_sql)
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
     # 特殊字符串的列预先处理下：
-    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check']
+    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check', 'joke']
     # df = all_data_df.copy()
     for feature in features:
         # print(all_data_df[feature].value_counts())
