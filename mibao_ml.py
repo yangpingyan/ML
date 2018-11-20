@@ -43,7 +43,7 @@ df = all_ml_data_df.copy()
 system_credit_check_unpass_canceled_df = df[df['state'] == 'system_credit_check_unpass_canceled' ]
 user_canceled_system_credit_unpass_df = df[df['state'] == 'user_canceled_system_credit_unpass' ]
 df = df[df['state'] != 'user_canceled_system_credit_unpass' ]
-df = df[df['state'] != 'system_credit_check_unpass_canceled' ]
+# df = df[df['state'] != 'system_credit_check_unpass_canceled' ]
 print("训练数据量: {}".format(df.shape))
 result_df = df[['order_id','target']]
 #
@@ -79,14 +79,14 @@ result_df = df[['order_id','target']]
 # print(list(set(df.columns.tolist()).difference(set(features))))
 # df = df[features]
 
-x = df.drop(['target', 'state'], axis=1, errors='ignore')
+x = df.drop(['target', 'state', 'order_id'], axis=1, errors='ignore')
 y = df['target']
 # Splitting the dataset into the Training set and Test set
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
 
-x_c = system_credit_check_unpass_canceled_df.drop(['target', 'state'], axis=1, errors='ignore')
+x_c = system_credit_check_unpass_canceled_df.drop(['target', 'state', 'order_id'], axis=1, errors='ignore')
 y_c = system_credit_check_unpass_canceled_df['target']
-x_c2 = user_canceled_system_credit_unpass_df.drop(['target', 'state'], axis=1, errors='ignore')
+x_c2 = user_canceled_system_credit_unpass_df.drop(['target', 'state', 'order_id'], axis=1, errors='ignore')
 y_c2 = user_canceled_system_credit_unpass_df['target']
 # x_train = pd.concat([x_train, x_c])
 # y_train = pd.concat([y_train, y_c])
@@ -147,34 +147,12 @@ print(score_df)
 # In[1]
 
 '''
-alldata :
-                accuracy  precision    recall        f1                confusion_matrix
-binary_logloss  0.936516   0.856484  0.857473  0.856978      [[5831, 249], [247, 1486]]
-auc             0.937540   0.860870  0.856896  0.858878      [[5840, 240], [248, 1485]]
-auc_alldata     0.949067   0.876348  0.902989  0.889469  [[58134, 2259], [1720, 16010]]
-
-alldata去掉 user_canceled_system_credit_unpass：
                 accuracy  precision    recall        f1              confusion_matrix
-binary_logloss  0.976081   0.962338  0.939627  0.950847     [[5511, 67], [110, 1712]]
-auc             0.977703   0.965188  0.943469  0.954205     [[5516, 62], [103, 1719]]
-auc_alldata     0.983093   0.975365  0.953525  0.964321  [[55836, 427], [824, 16906]]
+binary_logloss  0.976148   0.963626  0.948914  0.956213      [[4441, 61], [87, 1616]]
+auc             0.976471   0.964222  0.949501  0.956805      [[4442, 60], [86, 1617]]
+auc_alldata     0.975276   0.964921  0.947941  0.956356  [[43703, 611], [923, 16807]]
 
-再去掉 system_credit_check_unpass_canceled:
-                accuracy  precision    recall        f1              confusion_matrix
-binary_logloss  0.975987    0.97009  0.947107  0.958461      [[4337, 53], [96, 1719]]
-auc             0.975987    0.97009  0.947107  0.958461      [[4337, 53], [96, 1719]]
-auc_alldata     0.978902    0.97271  0.952905  0.962705  [[43840, 474], [835, 16895]]
 
-再训练数据加上 system_credit_check_unpass_canceled
-                accuracy  precision    recall        f1               confusion_matrix
-binary_logloss  0.976309   0.966530  0.948157  0.957255      [[4412, 57], [90, 1646]]
-auc             0.977115   0.967723  0.949885  0.958721      [[4414, 55], [87, 1649]]
-auc_alldata     0.979112   0.974477  0.951833  0.963022  [[43872, 442], [854, 16876]]
-
-再训练数据加上 user_canceled_system_credit_unpass
-binary_logloss  0.943594   0.957188  0.841101  0.895397      [[4357, 67], [283, 1498]]
-auc             0.944400   0.957325  0.843908  0.897046      [[4357, 67], [278, 1503]]
-auc_alldata     0.959625   0.970401  0.885730  0.926135  [[43835, 479], [2026, 15704]]
 '''
 
 # LightBGM with Random Search

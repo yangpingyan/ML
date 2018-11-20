@@ -7,7 +7,7 @@ from flask import make_response
 import pandas as pd
 import json
 import lightgbm as lgb
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, recall_score
 from sklearn.model_selection import train_test_split
 import warnings
 from gevent.pywsgi import WSGIServer
@@ -23,10 +23,25 @@ pd.set_option('display.max_columns', 60)
 # 获取训练数据
 all_data_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
 df = all_data_df.copy()
+system_credit_check_unpass_canceled_df = df[df['state'] == 'system_credit_check_unpass_canceled' ]
+user_canceled_system_credit_unpass_df = df[df['state'] == 'user_canceled_system_credit_unpass' ]
+df = df[df['state'] != 'user_canceled_system_credit_unpass' ]
+df = df[df['state'] != 'system_credit_check_unpass_canceled' ]
 print("数据量: {}".format(df.shape))
-x = df.drop(['target', 'order_id'], axis=1)
+x = df.drop(['target', 'order_id', 'state'], axis=1, errors='ignore')
 y = df['target']
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
+
+
+x_c = system_credit_check_unpass_canceled_df.drop(['target', 'state',  'order_id'], axis=1, errors='ignore')
+y_c = system_credit_check_unpass_canceled_df['target']
+x_c2 = user_canceled_system_credit_unpass_df.drop(['target', 'state',  'order_id'], axis=1, errors='ignore')
+y_c2 = user_canceled_system_credit_unpass_df['target']
+# x_train = pd.concat([x_train, x_c])
+# y_train = pd.concat([y_train, y_c])
+# x_train = pd.concat([x_train, x_c2])
+# y_train = pd.concat([y_train, y_c2])
+
 
 # 机器学习模型训练
 with open(os.path.join(workdir, "lgb_params.json"), 'r') as f:
@@ -36,26 +51,37 @@ lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
 accuracy_score = accuracy_score(y_test, y_pred)
-print("auc score:", accuracy_score)
+print("auc score:", accuracy_score, recall_score(y_test, y_pred))
 assert accuracy_score > 0.96
+
+# In[]
+'''
+auc score: 0.9737308622078968 0.9496567505720824
+auc score: 0.9711522965350524 0.942351598173516
+auc score: 0.9701853344077357 0.93190770962296
+auc score: 0.9727639000805802 0.9418079096045198
+auc score: 0.972119258662369 0.9441371681415929
+
+
+'''
 
 app = Flask(__name__)
 
-
+# start with order_id 105914
 @app.route('/ml_result/<int:order_id>', methods=['GET'])
 def get_predict_result(order_id):
-    log.debug("order_id: {}".format(order_id))
+    # log.debug("order_id: {}".format(order_id))
     ret_data = 2
     df = get_order_data(order_id, is_sql=True)
     if len(df) != 0:
-        log.debug(df)
+        # log.debug(df)
         df = process_data_mibao(df)
         df.drop(['order_id', 'state'], axis=1, inplace=True, errors='ignore')
         # print(list(set(all_data_df.columns.tolist()).difference(set(df.columns.tolist()))))
         if len(df.columns) == 54:
             y_pred = lgb_clf.predict(df)
             ret_data = y_pred[0]
-    log.debug("y_pred: {}".format(ret_data))
+    log.debug("order_id {} result: {}".format(order_id, ret_data))
     # print("reference:", all_data_df[all_data_df['order_id'] == order_id])
     return jsonify({"code": 200, "data": {"result": int(ret_data)}, "message": "SUCCESS"}), 200
 
@@ -88,4 +114,3 @@ if __name__ == '__main__':
     elif args.model == 'raw':
         app.run(host='0.0.0.0')
 
-# In[]
