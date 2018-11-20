@@ -35,7 +35,7 @@ order_express_features = ['order_id', 'zmxy_score', 'card_id', 'phone', 'company
 order_detail_features = ['order_id', 'order_detail']
 order_goods_features = ['order_id', 'price', 'category', 'old_level']
 order_phone_book_features = ['order_id', 'phone_book']
-risk_order_features = ['order_id', 'type', 'result', 'detail_json']
+risk_order_features = ['order_id', 'type', 'result', 'detail_json', 'remark']
 tongdun_features = ['order_number', 'final_score', 'final_decision']
 user_third_party_account_features = ['user_id']
 user_zhima_cert_features = ['user_id', 'status']
@@ -54,6 +54,8 @@ def save_all_tables_mibao():
     df = pd.read_sql_query(sql, sql_engine)
     df.to_csv("mibao_comment.csv", index=False)
 
+
+# sql_tables = [ 'risk_order']
 
 # save_all_tables_mibao()
 
@@ -250,8 +252,9 @@ def process_data_mibao(df):
     '''
     # merchant 违约率
 
-    df.drop(['user_id', 'state', 'year', 'cancel_reason', 'check_remark', 'hit_merchant_white_list', 'mibao_result',
-             'tongdun_detail_json', 'order_number', 'joke'], axis=1, inplace=True, errors='ignore')
+    df.drop(['user_id', 'year', 'cancel_reason', 'check_remark', 'hit_merchant_white_list', 'mibao_result',
+             'tongdun_detail_json', 'order_number', 'joke', 'mibao_remark', 'tongdun_remark', 'bai_qi_shi_remark',
+             'guanzhu_remark'], axis=1, inplace=True, errors='ignore')
 
     return df
 
@@ -346,9 +349,11 @@ def get_order_data(order_id=88668, is_sql=False):
                                 is_sql)
     risk_order_df['result'] = risk_order_df['result'].str.lower()
     for risk_type in ['tongdun', 'mibao', 'guanzhu', 'bai_qi_shi']:
-        tmp_df = risk_order_df[risk_order_df['type'].str.match(risk_type)][['order_id', 'result', 'detail_json']]
+        tmp_df = risk_order_df[risk_order_df['type'].str.match(risk_type)][
+            ['order_id', 'result', 'detail_json', 'remark']]
         tmp_df.rename(
-            columns={'result': risk_type + '_result', 'detail_json': risk_type + '_detail_json'},
+            columns={'result': risk_type + '_result', 'detail_json': risk_type + '_detail_json',
+                     'remark': risk_type + '_remark'},
             inplace=True)
         all_data_df = pd.merge(all_data_df, tmp_df, on='order_id', how='left')
     # 读取并处理表 tongdun

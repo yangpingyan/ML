@@ -50,7 +50,7 @@ def get_predict_result(order_id):
     if len(df) != 0:
         log.debug(df)
         df = process_data_mibao(df)
-        df.drop(['order_id'], axis=1, inplace=True, errors='ignore')
+        df.drop(['order_id', 'state'], axis=1, inplace=True, errors='ignore')
         # print(list(set(all_data_df.columns.tolist()).difference(set(df.columns.tolist()))))
         if len(df.columns) == 54:
             y_pred = lgb_clf.predict(df)

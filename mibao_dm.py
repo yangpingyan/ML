@@ -38,6 +38,7 @@ df.to_csv(os.path.join(workdir, "mibaodata_ml.csv") , index=False)
 missing_values_table(df)
 print("mibaodata_ml.csv保存的数据量: {}".format(df.shape))
 # In[1]
+exit('dm')
 
 # 查看各特征关联度
 features = ['target',

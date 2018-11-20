@@ -35,48 +35,64 @@ time_started = time.clock()
 # 设置随机种子
 # np.random.seed(88)
 # ## 获取数据
-df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
-print("初始数据量: {}".format(df.shape))
+all_ml_data_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
+print("初始数据量: {}".format(all_ml_data_df.shape))
+df = all_ml_data_df.copy()
 
+
+system_credit_check_unpass_canceled_df = df[df['state'] == 'system_credit_check_unpass_canceled' ]
+user_canceled_system_credit_unpass_df = df[df['state'] == 'user_canceled_system_credit_unpass' ]
+df = df[df['state'] != 'user_canceled_system_credit_unpass' ]
+df = df[df['state'] != 'system_credit_check_unpass_canceled' ]
+print("训练数据量: {}".format(df.shape))
 result_df = df[['order_id','target']]
+#
+# features = ['target',
+#             'merchant_id', 'pay_num',
+#             'added_service', 'bounds_example_id', 'bounds_example_no',
+#             'goods_type', 'lease_term', 'commented', 'accident_insurance',
+#             'type', 'order_type', 'device_type', 'source', 'distance',
+#             'disposable_payment_discount', 'disposable_payment_enabled',
+#             'merchant_store_id', 'deposit', 'fingerprint',
+#             'delivery_way', 'head_image_url', 'recommend_code',
+#             'regist_channel_type', 'share_callback', 'tag',
+#             'have_bargain_help', 'face_check', 'phone',
+#             'company',
+#             'company_phone',
+#             'category', 'old_level', 'tongdun_result',
+#             'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
+#             'occupational_identity_type', 'device_type_os',
+#             'regist_device_info', 'ingress_type',  'baiqishi_score',
+#             'zhima_cert_result', 'age', 'sex', 'zmf', 'xbf', 'final_score', 'final_decision',
+#             #      'zu_lin_ren_shen_fen_zheng_yan_zheng', 'zu_lin_ren_xing_wei', 'shou_ji_hao_yan_zheng', 'fan_qi_za', 'tdTotalScore',
+#             'weekday',
+#             'hour',
+#             # 暂时注释
+#             # 'account_num','phone_book','face_live_check',
+#             # 数值类型需转换
+#             'price', 'cost',
+#             # 实际场景效果不好的特征 # 0.971， 0.930
+#             'day',
+#             #'month',
+#             ]
+#
+# print(list(set(df.columns.tolist()).difference(set(features))))
+# df = df[features]
 
-features = ['target',
-            'merchant_id', 'pay_num',
-            'added_service', 'bounds_example_id', 'bounds_example_no',
-            'goods_type', 'lease_term', 'commented', 'accident_insurance',
-            'type', 'order_type', 'device_type', 'source', 'distance',
-            'disposable_payment_discount', 'disposable_payment_enabled',
-            'merchant_store_id', 'deposit', 'fingerprint',
-            'delivery_way', 'head_image_url', 'recommend_code',
-            'regist_channel_type', 'share_callback', 'tag',
-            'have_bargain_help', 'face_check', 'phone',
-            'company',
-            'company_phone',
-            'category', 'old_level', 'tongdun_result',
-            'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
-            'occupational_identity_type', 'device_type_os',
-            'regist_device_info', 'ingress_type',  'baiqishi_score',
-            'zhima_cert_result', 'age', 'sex', 'zmf', 'xbf', 'final_score', 'final_decision',
-            #      'zu_lin_ren_shen_fen_zheng_yan_zheng', 'zu_lin_ren_xing_wei', 'shou_ji_hao_yan_zheng', 'fan_qi_za', 'tdTotalScore',
-            'weekday',
-            'hour',
-            # 暂时注释
-            # 'account_num','phone_book','face_live_check',
-            # 数值类型需转换
-            'price', 'cost',
-            # 实际场景效果不好的特征 # 0.971， 0.930
-            'day',
-            #'month',
-            ]
-
-print(list(set(df.columns.tolist()).difference(set(features))))
-df = df[features]
-
-
-x = df.drop(['target'], axis=1)
+x = df.drop(['target', 'state'], axis=1, errors='ignore')
 y = df['target']
 # Splitting the dataset into the Training set and Test set
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
+
+x_c = system_credit_check_unpass_canceled_df.drop(['target', 'state'], axis=1, errors='ignore')
+y_c = system_credit_check_unpass_canceled_df['target']
+x_c2 = user_canceled_system_credit_unpass_df.drop(['target', 'state'], axis=1, errors='ignore')
+y_c2 = user_canceled_system_credit_unpass_df['target']
+# x_train = pd.concat([x_train, x_c])
+# y_train = pd.concat([y_train, y_c])
+# x_train = pd.concat([x_train, x_c2])
+# y_train = pd.concat([y_train, y_c2])
+
 
 score_df = pd.DataFrame(columns=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
 
@@ -131,19 +147,34 @@ print(score_df)
 # In[1]
 
 '''
-                 accuracy  precision    recall        f1            confusion_matrix
-precision_rs     0.925530   0.899360  0.729770  0.805738   [[4908, 110], [364, 983]]
-binary_logloss   0.932600   0.777283  0.890306  0.829964  [[4889, 300], [129, 1047]]
-auc              0.935114   0.811433  0.873003  0.841093  [[4859, 254], [159, 1093]]
-neg_log_loss_rs  0.938570   0.887358  0.812918  0.848508  [[4879, 139], [252, 1095]]
-recall_rs        0.938570   0.883013  0.818114  0.849326  [[4872, 146], [245, 1102]]
-accuracy_rs      0.939042   0.888259  0.814402  0.849729  [[4880, 138], [250, 1097]]
-roc_auc_rs       0.939670   0.888620  0.817372  0.851508  [[4880, 138], [246, 1101]]
-f1_rs            0.941084   0.889423  0.824053  0.855491  [[4880, 138], [237, 1110]]
+alldata :
+                accuracy  precision    recall        f1                confusion_matrix
+binary_logloss  0.936516   0.856484  0.857473  0.856978      [[5831, 249], [247, 1486]]
+auc             0.937540   0.860870  0.856896  0.858878      [[5840, 240], [248, 1485]]
+auc_alldata     0.949067   0.876348  0.902989  0.889469  [[58134, 2259], [1720, 16010]]
 
-                accuracy  precision    recall        f1           confusion_matrix
-binary_logloss  0.963679   0.882222  0.942993  0.911596  [[4938, 159], [72, 1191]]
-auc             0.972484   0.909630  0.958626  0.933485  [[4957, 122], [53, 1228]]
+alldata去掉 user_canceled_system_credit_unpass：
+                accuracy  precision    recall        f1              confusion_matrix
+binary_logloss  0.976081   0.962338  0.939627  0.950847     [[5511, 67], [110, 1712]]
+auc             0.977703   0.965188  0.943469  0.954205     [[5516, 62], [103, 1719]]
+auc_alldata     0.983093   0.975365  0.953525  0.964321  [[55836, 427], [824, 16906]]
+
+再去掉 system_credit_check_unpass_canceled:
+                accuracy  precision    recall        f1              confusion_matrix
+binary_logloss  0.975987    0.97009  0.947107  0.958461      [[4337, 53], [96, 1719]]
+auc             0.975987    0.97009  0.947107  0.958461      [[4337, 53], [96, 1719]]
+auc_alldata     0.978902    0.97271  0.952905  0.962705  [[43840, 474], [835, 16895]]
+
+再训练数据加上 system_credit_check_unpass_canceled
+                accuracy  precision    recall        f1               confusion_matrix
+binary_logloss  0.976309   0.966530  0.948157  0.957255      [[4412, 57], [90, 1646]]
+auc             0.977115   0.967723  0.949885  0.958721      [[4414, 55], [87, 1649]]
+auc_alldata     0.979112   0.974477  0.951833  0.963022  [[43872, 442], [854, 16876]]
+
+再训练数据加上 user_canceled_system_credit_unpass
+binary_logloss  0.943594   0.957188  0.841101  0.895397      [[4357, 67], [283, 1498]]
+auc             0.944400   0.957325  0.843908  0.897046      [[4357, 67], [278, 1503]]
+auc_alldata     0.959625   0.970401  0.885730  0.926135  [[43835, 479], [2026, 15704]]
 '''
 
 # LightBGM with Random Search
