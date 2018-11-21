@@ -22,7 +22,6 @@ import json
 from mltools import *
 from explore_data_utils import *
 
-
 # to make output display better
 pd.set_option('display.max_columns', 50)
 pd.set_option('display.max_rows', 70)
@@ -39,45 +38,44 @@ all_ml_data_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding
 print("初始数据量: {}".format(all_ml_data_df.shape))
 df = all_ml_data_df.copy()
 
-
-system_credit_check_unpass_canceled_df = df[df['state'] == 'system_credit_check_unpass_canceled' ]
-user_canceled_system_credit_unpass_df = df[df['state'] == 'user_canceled_system_credit_unpass' ]
-df = df[df['state'] != 'user_canceled_system_credit_unpass' ]
+system_credit_check_unpass_canceled_df = df[df['state'] == 'system_credit_check_unpass_canceled']
+user_canceled_system_credit_unpass_df = df[df['state'] == 'user_canceled_system_credit_unpass']
+df = df[df['state'] != 'user_canceled_system_credit_unpass']
 # df = df[df['state'] != 'system_credit_check_unpass_canceled' ]
 print("训练数据量: {}".format(df.shape))
-result_df = df[['order_id','target']]
-#
-# features = ['target',
-#             'merchant_id', 'pay_num',
-#             'added_service', 'bounds_example_id', 'bounds_example_no',
-#             'goods_type', 'lease_term', 'commented', 'accident_insurance',
-#             'type', 'order_type', 'device_type', 'source', 'distance',
-#             'disposable_payment_discount', 'disposable_payment_enabled',
-#             'merchant_store_id', 'deposit', 'fingerprint',
-#             'delivery_way', 'head_image_url', 'recommend_code',
-#             'regist_channel_type', 'share_callback', 'tag',
-#             'have_bargain_help', 'face_check', 'phone',
-#             'company',
-#             'company_phone',
-#             'category', 'old_level', 'tongdun_result',
-#             'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
-#             'occupational_identity_type', 'device_type_os',
-#             'regist_device_info', 'ingress_type',  'baiqishi_score',
-#             'zhima_cert_result', 'age', 'sex', 'zmf', 'xbf', 'final_score', 'final_decision',
-#             #      'zu_lin_ren_shen_fen_zheng_yan_zheng', 'zu_lin_ren_xing_wei', 'shou_ji_hao_yan_zheng', 'fan_qi_za', 'tdTotalScore',
-#             'weekday',
-#             'hour',
-#             # 暂时注释
-#             # 'account_num','phone_book','face_live_check',
-#             # 数值类型需转换
-#             'price', 'cost',
-#             # 实际场景效果不好的特征 # 0.971， 0.930
-#             'day',
-#             #'month',
-#             ]
-#
-# print(list(set(df.columns.tolist()).difference(set(features))))
-# df = df[features]
+result_df = df[['order_id', 'target']]
+
+mibao_ml_features = ['target',
+                     'merchant_id', 'pay_num',
+                     'added_service', 'bounds_example_id', 'bounds_example_no',
+                     'goods_type', 'lease_term', 'commented', 'accident_insurance',
+                     'type', 'order_type', 'device_type', 'source', 'distance',
+                     'disposable_payment_discount', 'disposable_payment_enabled',
+                     'merchant_store_id', 'deposit', 'fingerprint',
+                     'delivery_way', 'head_image_url', 'recommend_code',
+                     'regist_channel_type', 'share_callback', 'tag',
+                     'have_bargain_help', 'face_check', 'phone',
+                     'company',
+                     'company_phone',
+                     'category', 'old_level', 'tongdun_result',
+                     'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
+                     'occupational_identity_type', 'device_type_os',
+                     'regist_device_info', 'ingress_type', 'baiqishi_score',
+                     'zhima_cert_result', 'age', 'sex', 'zmf', 'xbf', 'final_score', 'final_decision',
+                     #      'zu_lin_ren_shen_fen_zheng_yan_zheng', 'zu_lin_ren_xing_wei', 'shou_ji_hao_yan_zheng', 'fan_qi_za', 'tdTotalScore',
+                     'weekday',
+                     'hour',
+                     # 暂时注释
+                     # 'account_num','phone_book','face_live_check',
+                     # 数值类型需转换
+                     'price', 'cost',
+                     # 实际场景效果不好的特征 # 0.971， 0.930
+                     'day',
+                     # 'month',
+                     ]
+
+print(list(set(df.columns.tolist()).difference(set(mibao_ml_features))))
+df = df[mibao_ml_features]
 
 x = df.drop(['target', 'state', 'order_id'], axis=1, errors='ignore')
 y = df['target']
@@ -117,7 +115,7 @@ lgb_params_binary_logloss['n_estimators'] = len(ret['binary_logloss-mean'])
 lgb_clf = lgb.LGBMClassifier(**lgb_params_binary_logloss)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-add_score(score_df, 'binary_logloss',y_test, y_pred )
+add_score(score_df, 'binary_logloss', y_test, y_pred)
 
 lgb_params_auc = lgb_params.copy()
 ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='auc', seed=42)
@@ -126,7 +124,7 @@ lgb_params_auc['n_estimators'] = len(ret['auc-mean'])
 lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
-add_score(score_df, 'auc', y_test, y_pred )
+add_score(score_df, 'auc', y_test, y_pred)
 # save model
 # pickle.dump(lgb_clf, open('mibao_ml.pkl', 'wb'))
 with open('lgb_params.json', 'w') as f:
@@ -138,7 +136,7 @@ importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
 print(importance_df)
 
 y_pred = lgb_clf.predict(x)
-add_score(score_df, 'auc_alldata',y_test=y, y_pred=y_pred)
+add_score(score_df, 'auc_alldata', y_test=y, y_pred=y_pred)
 print(score_df)
 # result_df['predict'] = y_pred
 # result_df.to_csv(os.path.join(workdir,"mibao_mlresult.csv"), index=False)

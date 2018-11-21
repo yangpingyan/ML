@@ -23,7 +23,6 @@ order_features = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost'
                   'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
                   'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way',
                   'order_number', 'joke']
-
 user_features = ['id', 'head_image_url', 'recommend_code', 'regist_channel_type', 'share_callback', 'tag', 'phone']
 bargain_help_features = ['user_id']
 face_id_features = ['user_id', 'status']
@@ -266,7 +265,7 @@ def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=Fals
         # print(sql)
         df = pd.read_sql_query(sql, sql_engine)
     else:
-        df = pd.read_csv(os.path.join(workdir, filename + '.csv'), encoding='utf-8', engine='python')
+        df = pd.read_csv(os.path.join(workdir, 'datasets', filename + '.csv'), encoding='utf-8', engine='python')
         df = df[features]
     # print(filename, time.clock() - starttime)
     return df
@@ -276,6 +275,8 @@ def get_order_data(order_id=88668, is_sql=False):
     # 读取order表
     # log.debug("get_oder_data")
     order_df = read_mlfile('order', order_features, 'id', order_id, is_sql)
+    order_df['joke'].dtype
+
     if len(order_df) == 0:
         return order_df
     order_df.rename(columns={'id': 'order_id'}, inplace=True)
@@ -386,3 +387,8 @@ def get_order_data(order_id=88668, is_sql=False):
         # print(all_data_df[feature].value_counts())
 
     return all_data_df
+
+
+if __name__ == '__main__':
+    # save_all_tables_mibao()
+    print(__name__)
