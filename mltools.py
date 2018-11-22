@@ -3,7 +3,7 @@
 # @Time : 2018/11/7 10:34 
 # @Author : yangpingyan@gmail.com
 import os
-from log import log
+from mibao_log import log
 
 def get_csv_files(dir_path):
     '''获取dir_path当前目录下的所有csv文件（不包含子目录）'''

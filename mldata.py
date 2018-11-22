@@ -9,7 +9,7 @@ import numpy as np
 import re
 import os
 import time
-from log import log
+from mibao_log import log
 from sql import sql_engine
 from mltools import *
 import warnings

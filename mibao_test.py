@@ -19,7 +19,7 @@ from gevent.pywsgi import WSGIServer
 from mltools import *
 from mldata import *
 import logging
-from log import log
+from mibao_log import log
 import random
 from explore_data_utils import *
 

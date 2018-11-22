@@ -10,7 +10,7 @@ import os
 # import mlutils
 import json
 from sqlalchemy import create_engine
-from log import log
+from mibao_log import log
 from mltools import *
 
 def sql_connect(sql_file, ssh_pkey=None):
