@@ -21,6 +21,7 @@ from sklearn.externals import joblib
 import json
 from mltools import *
 from explore_data_utils import *
+from mldata import *
 
 # to make output display better
 pd.set_option('display.max_columns', 50)
@@ -38,59 +39,14 @@ all_ml_data_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding
 print("初始数据量: {}".format(all_ml_data_df.shape))
 df = all_ml_data_df.copy()
 
-system_credit_check_unpass_canceled_df = df[df['state'] == 'system_credit_check_unpass_canceled']
-user_canceled_system_credit_unpass_df = df[df['state'] == 'user_canceled_system_credit_unpass']
-df = df[df['state'] != 'user_canceled_system_credit_unpass']
-# df = df[df['state'] != 'system_credit_check_unpass_canceled' ]
-print("训练数据量: {}".format(df.shape))
 result_df = df[['order_id', 'target']]
 
-mibao_ml_features = ['target',
-                     'merchant_id', 'pay_num',
-                     'added_service', 'bounds_example_id', 'bounds_example_no',
-                     'goods_type', 'lease_term', 'commented', 'accident_insurance',
-                     'type', 'order_type', 'device_type', 'source', 'distance',
-                     'disposable_payment_discount', 'disposable_payment_enabled',
-                     'merchant_store_id', 'deposit', 'fingerprint',
-                     'delivery_way', 'head_image_url', 'recommend_code',
-                     'regist_channel_type', 'share_callback', 'tag',
-                     'have_bargain_help', 'face_check', 'phone',
-                     'company',
-                     'company_phone',
-                     'category', 'old_level', 'tongdun_result',
-                     'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
-                     'occupational_identity_type', 'device_type_os',
-                     'regist_device_info', 'ingress_type', 'baiqishi_score',
-                     'zhima_cert_result', 'age', 'sex', 'zmf', 'xbf', 'final_score', 'final_decision',
-                     #      'zu_lin_ren_shen_fen_zheng_yan_zheng', 'zu_lin_ren_xing_wei', 'shou_ji_hao_yan_zheng', 'fan_qi_za', 'tdTotalScore',
-                     'weekday',
-                     'hour',
-                     # 暂时注释
-                     # 'account_num','phone_book','face_live_check',
-                     # 数值类型需转换
-                     'price', 'cost',
-                     # 实际场景效果不好的特征 # 0.971， 0.930
-                     'day',
-                     # 'month',
-                     ]
-
 print(list(set(df.columns.tolist()).difference(set(mibao_ml_features))))
-df = df[mibao_ml_features]
 
-x = df.drop(['target', 'state', 'order_id'], axis=1, errors='ignore')
+x = df[mibao_ml_features]
 y = df['target']
 # Splitting the dataset into the Training set and Test set
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
-
-x_c = system_credit_check_unpass_canceled_df.drop(['target', 'state', 'order_id'], axis=1, errors='ignore')
-y_c = system_credit_check_unpass_canceled_df['target']
-x_c2 = user_canceled_system_credit_unpass_df.drop(['target', 'state', 'order_id'], axis=1, errors='ignore')
-y_c2 = user_canceled_system_credit_unpass_df['target']
-# x_train = pd.concat([x_train, x_c])
-# y_train = pd.concat([y_train, y_c])
-# x_train = pd.concat([x_train, x_c2])
-# y_train = pd.concat([y_train, y_c2])
-
 
 score_df = pd.DataFrame(columns=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
 
@@ -146,9 +102,13 @@ print(score_df)
 
 '''
                 accuracy  precision    recall        f1              confusion_matrix
-binary_logloss  0.976148   0.963626  0.948914  0.956213      [[4441, 61], [87, 1616]]
-auc             0.976471   0.964222  0.949501  0.956805      [[4442, 60], [86, 1617]]
-auc_alldata     0.975276   0.964921  0.947941  0.956356  [[43703, 611], [923, 16807]]
+binary_logloss  0.970991   0.957373  0.940045  0.948630     [[4363, 74], [106, 1662]]
+auc             0.971152   0.957398  0.940611  0.948930     [[4363, 74], [105, 1663]]
+auc_alldata     0.973470   0.959018  0.947659  0.953305  [[43596, 718], [928, 16802]]
+
+binary_logloss  0.972603   0.962350  0.941932  0.952032     [[4348, 66], [104, 1687]]
+auc             0.971636   0.959590  0.941374  0.950395     [[4343, 71], [105, 1686]]
+auc_alldata     0.972568   0.959045  0.944332  0.951631  [[43599, 715], [987, 16743]]
 
 
 '''

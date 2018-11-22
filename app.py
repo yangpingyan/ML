@@ -23,25 +23,10 @@ pd.set_option('display.max_columns', 60)
 # 获取训练数据
 all_data_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
 df = all_data_df.copy()
-system_credit_check_unpass_canceled_df = df[df['state'] == 'system_credit_check_unpass_canceled' ]
-user_canceled_system_credit_unpass_df = df[df['state'] == 'user_canceled_system_credit_unpass' ]
-df = df[df['state'] != 'user_canceled_system_credit_unpass' ]
-df = df[df['state'] != 'system_credit_check_unpass_canceled' ]
 print("数据量: {}".format(df.shape))
-x = df.drop(['target', 'order_id', 'state'], axis=1, errors='ignore')
+x = df[mibao_ml_features]
 y = df['target']
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
-
-
-x_c = system_credit_check_unpass_canceled_df.drop(['target', 'state',  'order_id'], axis=1, errors='ignore')
-y_c = system_credit_check_unpass_canceled_df['target']
-x_c2 = user_canceled_system_credit_unpass_df.drop(['target', 'state',  'order_id'], axis=1, errors='ignore')
-y_c2 = user_canceled_system_credit_unpass_df['target']
-# x_train = pd.concat([x_train, x_c])
-# y_train = pd.concat([y_train, y_c])
-# x_train = pd.concat([x_train, x_c2])
-# y_train = pd.concat([y_train, y_c2])
-
 
 # 机器学习模型训练
 with open(os.path.join(workdir, "lgb_params.json"), 'r') as f:
@@ -76,9 +61,10 @@ def get_predict_result(order_id):
     if len(df) != 0:
         # log.debug(df)
         df = process_data_mibao(df)
-        df.drop(['order_id', 'state'], axis=1, inplace=True, errors='ignore')
+        df = df[mibao_ml_features]
+        # print(len(df.columns))
         # print(list(set(all_data_df.columns.tolist()).difference(set(df.columns.tolist()))))
-        if len(df.columns) == 54:
+        if len(df.columns) == 53:
             y_pred = lgb_clf.predict(df)
             ret_data = y_pred[0]
     log.debug("order_id {} result: {}".format(order_id, ret_data))

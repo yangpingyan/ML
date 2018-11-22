@@ -12,11 +12,20 @@ import time
 from log import log
 from sql import sql_engine
 from mltools import *
+import warnings
 
+# to make output display better
+pd.set_option('display.max_columns', 50)
+pd.set_option('display.max_rows', 70)
+pd.set_option('display.width', 1000)
+
+warnings.filterwarnings('ignore')
+# 需要读取的数据库表
 sql_tables = ['bargain_help', 'face_id', 'face_id_liveness', 'jimi_order_check_result', 'order', 'order_detail',
               'order_express', 'order_goods', 'order_phone_book', 'risk_order', 'tongdun', 'user', 'user_credit',
               'user_device', 'user_third_party_account', 'user_zhima_cert']
 
+# 数据库表中的相关字段
 order_features = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
                   'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
                   'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
@@ -39,6 +48,34 @@ tongdun_features = ['order_number', 'final_score', 'final_decision']
 user_third_party_account_features = ['user_id']
 user_zhima_cert_features = ['user_id', 'status']
 jimi_order_check_result_features = ['order_id', 'check_remark']
+
+# order中的state 分类
+state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pay',
+                'artificial_credit_check_unpass_canceled', 'pending_artificial_credit_check', 'lease_finished',
+                'return_overdue', 'order_payment_overtime_canceled', 'pending_send_goods',
+                'merchant_not_yet_send_canceled', 'running_overdue', 'buyout_finished', 'pending_user_compensate',
+                'repairing', 'express_rejection_canceled', 'pending_return', 'returning', 'return_goods',
+                'pending_relet_check', 'returned_received', 'relet_finished', 'merchant_relet_check_unpass_canceled',
+                'system_credit_check_unpass_canceled', 'pending_jimi_credit_check', 'pending_relet_start',
+                'pending_refund_deposit', 'merchant_credit_check_unpass_canceled', 'pending_order_receiving']
+failure_state_values = ['artificial_credit_check_unpass_canceled', 'return_overdue', 'running_overdue',
+                        'merchant_relet_check_unpass_canceled', 'system_credit_check_unpass_canceled',
+                        'merchant_credit_check_unpass_canceled']
+pending_state_values = ['pending_jimi_credit_check', 'user_canceled', 'pending_artificial_credit_check',
+                        'pending_relet_check', 'pending_relet_start', 'pending_order_receiving']
+
+# 机器学习中使用到的特征
+mibao_ml_features = ['merchant_id', 'pay_num', 'added_service', 'bounds_example_id', 'bounds_example_no',
+                     'goods_type', 'lease_term', 'commented', 'accident_insurance', 'type', 'order_type', 'device_type',
+                     'source', 'distance', 'disposable_payment_discount', 'disposable_payment_enabled',
+                     'merchant_store_id', 'deposit', 'fingerprint', 'delivery_way', 'head_image_url', 'recommend_code',
+                     'regist_channel_type', 'share_callback', 'tag', 'have_bargain_help', 'face_check', 'phone',
+                     'company', 'company_phone', 'category', 'old_level', 'tongdun_result', 'guanzhu_result',
+                     'bai_qi_shi_result', 'workplace', 'idcard_pros', 'occupational_identity_type', 'device_type_os',
+                     'regist_device_info', 'ingress_type', 'baiqishi_score', 'zhima_cert_result', 'age', 'sex', 'zmf',
+                     'xbf', 'final_score', 'final_decision', 'weekday', 'hour',
+                     'price', 'cost',
+                     ]
 
 
 def save_all_tables_mibao():
@@ -230,7 +267,7 @@ def process_data_mibao(df):
     df.drop(['cert_no_expiry_date', 'regist_useragent', 'cert_no_json', ],
             axis=1, inplace=True, errors='ignore')
     # 已使用的特征
-    df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'create_time', 'cert_no',
+    df.drop(['zmxy_score', 'card_id', 'phone_user', 'xiaobaiScore', 'zmxyScore', 'cert_no',
              'bai_qi_shi_detail_json', 'guanzhu_detail_json', 'mibao_detail_json',
              'order_detail'], axis=1,
             inplace=True, errors='ignore')
@@ -251,7 +288,7 @@ def process_data_mibao(df):
     '''
     # merchant 违约率
 
-    df.drop(['user_id', 'year', 'cancel_reason', 'check_remark', 'hit_merchant_white_list', 'mibao_result',
+    df.drop(['year', 'cancel_reason', 'check_remark', 'hit_merchant_white_list', 'mibao_result',
              'tongdun_detail_json', 'order_number', 'joke', 'mibao_remark', 'tongdun_remark', 'bai_qi_shi_remark',
              'guanzhu_remark'], axis=1, inplace=True, errors='ignore')
 
