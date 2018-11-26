@@ -25,7 +25,7 @@ all_data_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='u
 df = all_data_df.copy()
 print("数据量: {}".format(df.shape))
 x = df[mibao_ml_features]
-y = df['target']
+y = df['target'].tolist()
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
 
 # 机器学习模型训练

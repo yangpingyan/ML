@@ -26,12 +26,30 @@ from explore_data_utils import *
 warnings.filterwarnings('ignore')
 
 # 查验审核准确度
-sql = "SELECT o.id, o.`create_time`, o.state, r.`type`, r.`result`, r.`remark` FROM `order` o LEFT JOIN risk_order r ON r.`order_id` = o.id WHERE o.id > 105913 ORDER BY o.id DESC;"
+sql = '''
+    SELECT o.id as 'order_id', o.`create_time`, o.state, r.`type`, r.`result`, c.`check_result`, r.`remark`, cao.state as 'state_cao', cao.`remark` as 'remark_cao' FROM `order` o 
+LEFT JOIN risk_order r ON r.`order_id` = o.id
+LEFT JOIN jimi_order_check_result c ON c.`order_id` = o.id
+LEFT JOIN credit_audit_order cao ON cao.`order_id` = o.id
+WHERE o.id > 107132 
+ORDER BY o.state DESC;
+    '''
 df = pd.read_sql_query(sql, sql_engine)
-df = df[df['state'].isin(['user_canceled', 'pending_artificial_credit_check']) != True]
-df = df[df['remark'].isin(['机审审核不通过']) != True]
+df['state_cao'].value_counts()
+# 标注人工审核结果于target字段
+df['target'] = None
+df.loc[df['state_cao'] == 'manual_check_fail', 'target'] = 0
+df.loc[df['state_cao'] == 'manual_check_success', 'target'] = 1
+df.loc[df['state'].isin(pass_state_values), 'target'] = 1
+df.loc[df['state'].isin(failure_state_values), 'target'] = 0
+df = df[df['target'].notnull()]
+df['target'].value_counts()
+df[df['state_cao'] == 'manual_check_fail']
+# df = df[df['order_id'].isin(df[df['remark'].isin(['机审审核不通过'])]['order_id'].tolist() )!= True]
 df = df[df['type'].isin(['data_works'])]
-df.insert(0, 'target', np.where(df['state'].isin(failure_state_values), 0, 1))
+
+df.shape
+
 score_df = pd.DataFrame(columns=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
 add_score(score_df, 'pred result', df['target'].astype(int).tolist(), df['result'].astype(int).tolist())
 

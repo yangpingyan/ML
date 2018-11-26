@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 # 需要读取的数据库表
 sql_tables = ['bargain_help', 'face_id', 'face_id_liveness', 'jimi_order_check_result', 'order', 'order_detail',
               'order_express', 'order_goods', 'order_phone_book', 'risk_order', 'tongdun', 'user', 'user_credit',
-              'user_device', 'user_third_party_account', 'user_zhima_cert']
+              'user_device', 'user_third_party_account', 'user_zhima_cert', 'credit_audit_order']
 
 # 数据库表中的相关字段
 order_features = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
@@ -48,6 +48,7 @@ tongdun_features = ['order_number', 'final_score', 'final_decision']
 user_third_party_account_features = ['user_id']
 user_zhima_cert_features = ['user_id', 'status']
 jimi_order_check_result_features = ['order_id', 'check_remark']
+credit_audit_order_features = ['order_id', 'state', 'remark']
 
 # order中的state 分类
 state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pay',
@@ -58,11 +59,18 @@ state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pa
                 'pending_relet_check', 'returned_received', 'relet_finished', 'merchant_relet_check_unpass_canceled',
                 'system_credit_check_unpass_canceled', 'pending_jimi_credit_check', 'pending_relet_start',
                 'pending_refund_deposit', 'merchant_credit_check_unpass_canceled', 'pending_order_receiving']
+pass_state_values = ['pending_receive_goods', 'running', 'pending_pay', 'lease_finished', 'pending_send_goods',
+                     'merchant_not_yet_send_canceled', 'buyout_finished', 'pending_user_compensate', 'repairing',
+                     'express_rejection_canceled', 'pending_return', 'returning', 'return_goods', 'returned_received',
+                     'relet_finished', 'pending_refund_deposit' ]
 failure_state_values = ['artificial_credit_check_unpass_canceled', 'return_overdue', 'running_overdue',
                         'merchant_relet_check_unpass_canceled', 'system_credit_check_unpass_canceled',
                         'merchant_credit_check_unpass_canceled']
-pending_state_values = ['pending_jimi_credit_check', 'user_canceled', 'pending_artificial_credit_check',
-                        'pending_relet_check', 'pending_relet_start', 'pending_order_receiving']
+unknow_state_values = ['pending_order_receiving', 'pending_jimi_credit_check', 'order_payment_overtime_canceled',
+                       'pending_artificial_credit_check', 'user_canceled', 'pending_relet_start',
+                       'pending_relet_check']
+
+# print(list(set(state_values).difference(set(pass_state_values + failure_state_values))))
 
 # 机器学习中使用到的特征
 mibao_ml_features = ['merchant_id', 'pay_num', 'added_service', 'bounds_example_id', 'bounds_example_no',
@@ -91,8 +99,7 @@ def save_all_tables_mibao():
     df.to_csv("mibao_comment.csv", index=False)
 
 
-# sql_tables = [ 'risk_order']
-
+# sql_tables = [ 'credit_audit_order']
 # save_all_tables_mibao()
 
 
@@ -312,7 +319,6 @@ def get_order_data(order_id=88668, is_sql=False):
     # 读取order表
     # log.debug("get_oder_data")
     order_df = read_mlfile('order', order_features, 'id', order_id, is_sql)
-    order_df['joke'].dtype
 
     if len(order_df) == 0:
         return order_df
@@ -411,6 +417,11 @@ def get_order_data(order_id=88668, is_sql=False):
 
     # 读取并处理表 jimi_order_check_result
     df = read_mlfile('jimi_order_check_result', jimi_order_check_result_features, 'order_id', order_id, is_sql)
+    all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
+
+    # 读取并处理表 credit_audit_order
+    df = read_mlfile('credit_audit_order', credit_audit_order_features, 'order_id', order_id, is_sql)
+    df.rename(columns={'state': 'state_cao', 'remark': 'remark_cao'}, inplace=True)
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
     # 特殊字符串的列预先处理下：
