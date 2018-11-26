@@ -27,11 +27,10 @@ warnings.filterwarnings('ignore')
 
 # 查验审核准确度
 sql = '''
-    SELECT o.id as 'order_id', o.`create_time`, o.state, r.`type`, r.`result`, c.`check_result`, r.`remark`, cao.state as 'state_cao', cao.`remark` as 'remark_cao' FROM `order` o 
+    SELECT o.id as 'order_id', o.`create_time`, o.state, r.`type`, r.`result`, r.`remark`, cao.state as 'state_cao', cao.`remark` as 'remark_cao' FROM `order` o 
 LEFT JOIN risk_order r ON r.`order_id` = o.id
-LEFT JOIN jimi_order_check_result c ON c.`order_id` = o.id
 LEFT JOIN credit_audit_order cao ON cao.`order_id` = o.id
-WHERE o.id > 107132 
+WHERE o.id > 107793 
 ORDER BY o.state DESC;
     '''
 df = pd.read_sql_query(sql, sql_engine)

@@ -61,7 +61,7 @@ if 'n_estimators' in lgb_params.keys():
     del lgb_params['n_estimators']
     # Perform n_folds cross validation
 # param['metric'] = ['auc', 'binary_logloss']
-
+lgb_params['is_unbalance'] = True
 
 lgb_params_binary_logloss = lgb_params.copy()
 ret = lgb.cv(lgb_params, train_set, num_boost_round=10000, nfold=5, early_stopping_rounds=100, metrics='binary_logloss',
@@ -101,16 +101,16 @@ print(score_df)
 # In[1]
 
 '''
+                accuracy  precision    recall        f1             confusion_matrix
+binary_logloss  0.986941   0.955582  0.940898  0.948183      [[5779, 37], [50, 796]]
+auc             0.986941   0.955582  0.940898  0.948183      [[5779, 37], [50, 796]]
+auc_alldata     0.987616   0.953580  0.945063  0.949303  [[58070, 376], [449, 7724]]
+
+is_unbalance:
                 accuracy  precision    recall        f1              confusion_matrix
-binary_logloss  0.970991   0.957373  0.940045  0.948630     [[4363, 74], [106, 1662]]
-auc             0.971152   0.957398  0.940611  0.948930     [[4363, 74], [105, 1663]]
-auc_alldata     0.973470   0.959018  0.947659  0.953305  [[43596, 718], [928, 16802]]
-
-binary_logloss  0.972603   0.962350  0.941932  0.952032     [[4348, 66], [104, 1687]]
-auc             0.971636   0.959590  0.941374  0.950395     [[4343, 71], [105, 1686]]
-auc_alldata     0.972568   0.959045  0.944332  0.951631  [[43599, 715], [987, 16743]]
-
-
+binary_logloss  0.975083   0.851211  0.952258  0.898904      [[5758, 129], [37, 738]]
+auc             0.976434   0.859302  0.953548  0.903976      [[5766, 121], [36, 739]]
+auc_alldata     0.981987   0.886145  0.978955  0.930241  [[57418, 1028], [172, 8001]]
 '''
 
 # LightBGM with Random Search
@@ -128,9 +128,9 @@ param_grid = {
     # 'subsample': list(np.linspace(0.5, 1, 100)),
     # 'is_unbalance': [True, False]
 }
-scorings = ['accuracy', 'precision', 'recall', 'roc_auc', 'f1', 'average_precision', 'f1_micro', 'f1_macro',
-            'f1_weighted', 'neg_log_loss', ]
-scorings = ['neg_log_loss', 'accuracy', 'precision', 'recall', 'roc_auc', 'f1', ]
+
+scorings = ['neg_log_loss', 'accuracy', 'precision', 'recall', 'roc_auc', 'f1', 'f1_micro', 'average_precision',
+            'f1_macro', 'f1_weighted']
 
 for scoring in scorings:
     lgb_clf = lgb.LGBMClassifier()
