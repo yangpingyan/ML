@@ -59,16 +59,17 @@ state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pa
                 'pending_relet_check', 'returned_received', 'relet_finished', 'merchant_relet_check_unpass_canceled',
                 'system_credit_check_unpass_canceled', 'pending_jimi_credit_check', 'pending_relet_start',
                 'pending_refund_deposit', 'merchant_credit_check_unpass_canceled', 'pending_order_receiving']
-pass_state_values = ['pending_receive_goods', 'running', 'pending_pay', 'lease_finished', 'pending_send_goods',
+pass_state_values = ['pending_receive_goods', 'running', 'lease_finished', 'pending_send_goods',
                      'merchant_not_yet_send_canceled', 'buyout_finished', 'pending_user_compensate', 'repairing',
                      'express_rejection_canceled', 'pending_return', 'returning', 'return_goods', 'returned_received',
                      'relet_finished', 'pending_refund_deposit' ]
 failure_state_values = ['artificial_credit_check_unpass_canceled', 'return_overdue', 'running_overdue',
-                        'merchant_relet_check_unpass_canceled', 'system_credit_check_unpass_canceled',
-                        'merchant_credit_check_unpass_canceled']
+                         'system_credit_check_unpass_canceled',
+                        'merchant_relet_check_unpass_canceled','merchant_credit_check_unpass_canceled'
+                        ]
 unknow_state_values = ['pending_order_receiving', 'pending_jimi_credit_check', 'order_payment_overtime_canceled',
                        'pending_artificial_credit_check', 'user_canceled', 'pending_relet_start',
-                       'pending_relet_check']
+                       'pending_relet_check', 'pending_pay']
 
 # print(list(set(state_values).difference(set(pass_state_values + failure_state_values))))
 
@@ -82,7 +83,7 @@ mibao_ml_features = ['merchant_id', 'pay_num', 'added_service', 'bounds_example_
                      'bai_qi_shi_result', 'workplace', 'idcard_pros', 'occupational_identity_type', 'device_type_os',
                      'regist_device_info', 'ingress_type', 'baiqishi_score', 'zhima_cert_result', 'age', 'sex', 'zmf',
                      'xbf', 'final_score', 'final_decision', 'weekday', 'hour',
-                     'price', 'cost',
+                     'price', 'cost', 'phone_book', 'face_live_check'
                      ]
 
 
@@ -343,9 +344,9 @@ def get_order_data(order_id=88668, is_sql=False):
     all_data_df = pd.merge(all_data_df, face_id_df, on='user_id', how='left')
 
     # 读取并处理表 face_id_liveness
-    # face_id_liveness_df = read_mlfile('face_id_liveness', ['order_id', 'status'], 'order_id', order_id, is_sql)
-    # face_id_liveness_df.rename(columns={'status': 'face_live_check'}, inplace=True)
-    # all_data_df = pd.merge(all_data_df, face_id_liveness_df, on='order_id', how='left')
+    face_id_liveness_df = read_mlfile('face_id_liveness', ['order_id', 'status'], 'order_id', order_id, is_sql)
+    face_id_liveness_df.rename(columns={'status': 'face_live_check'}, inplace=True)
+    all_data_df = pd.merge(all_data_df, face_id_liveness_df, on='order_id', how='left')
 
     # 读取并处理表 user_credit
     user_credit_df = read_mlfile('user_credit', user_credit_features, 'user_id', user_id, is_sql)
@@ -373,20 +374,21 @@ def get_order_data(order_id=88668, is_sql=False):
     all_data_df = pd.merge(all_data_df, order_goods_df, on='order_id', how='left')
 
     # 读取并处理表 order_phone_book
-    # order_phone_book_df = read_mlfile('order_phone_book', ['order_id', 'phone_book'], 'order_id', order_id, is_sql)
-    # all_data_df = pd.merge(all_data_df, order_phone_book_df, on='order_id', how='left')
-    # def count_name_nums(data):
-    #     name_list = []
-    #     if isinstance(data, str):
-    #         data_list = json.loads(data)
-    #         for phone_book in data_list:
-    #             if len(phone_book.get('name')) > 0 and phone_book.get('name').isdigit() is False:
-    #                 name_list.append(phone_book.get('name'))
-    #
-    #     return len(set(name_list))
-    #
-    # df['phone_book'] = df['phone_book'].map(count_name_nums)
-    # df['phone_book'].fillna(value=0, inplace=True)
+    def count_name_nums(data):
+        name_list = []
+        if isinstance(data, str):
+            data_list = json.loads(data)
+            for phone_book in data_list:
+                if len(phone_book.get('name')) > 0 and phone_book.get('name').isdigit() is False:
+                    name_list.append(phone_book.get('name'))
+
+        return len(set(name_list))
+
+    order_phone_book_df = read_mlfile('order_phone_book', ['order_id', 'phone_book'], 'order_id', order_id, is_sql)
+    order_phone_book_df['phone_book'] = order_phone_book_df['phone_book'].map(count_name_nums)
+
+    all_data_df = pd.merge(all_data_df, order_phone_book_df, on='order_id', how='left')
+    all_data_df['phone_book'].fillna(value=0, inplace=True)
 
     # 读取并处理表 risk_order
     risk_order_df = read_mlfile('risk_order', risk_order_features, 'order_id', order_id,
@@ -406,10 +408,10 @@ def get_order_data(order_id=88668, is_sql=False):
     all_data_df = pd.merge(all_data_df, tongdun_df, on='order_number', how='left')
 
     # 读取并处理表 user_third_party_account
-    # user_third_party_account_df = read_mlfile('user_third_party_account', ['user_id'], 'user_id', user_id, is_sql)
-    # counts_df = pd.DataFrame({'account_num': user_third_party_account_df['user_id'].value_counts()})
-    # counts_df['user_id'] = counts_df.index
-    # all_data_df = pd.merge(all_data_df, counts_df, on='user_id', how='left')
+    user_third_party_account_df = read_mlfile('user_third_party_account', ['user_id'], 'user_id', user_id, is_sql)
+    counts_df = pd.DataFrame({'account_num': user_third_party_account_df['user_id'].value_counts()})
+    counts_df['user_id'] = counts_df.index
+    all_data_df = pd.merge(all_data_df, counts_df, on='user_id', how='left')
 
     # 读取并处理表 user_zhima_cert
     df = read_mlfile('user_zhima_cert', user_zhima_cert_features, 'user_id', user_id, is_sql)
@@ -425,7 +427,7 @@ def get_order_data(order_id=88668, is_sql=False):
     all_data_df = pd.merge(all_data_df, df, on='order_id', how='left')
 
     # 特殊字符串的列预先处理下：
-    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check', 'joke']
+    features = ['installment', 'commented', 'disposable_payment_enabled', 'face_check', 'joke', 'face_live_check']
     # df = all_data_df.copy()
     for feature in features:
         # print(all_data_df[feature].value_counts())

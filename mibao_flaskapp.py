@@ -16,7 +16,9 @@ from mldata import *
 import logging
 from mibao_log import log
 import random
+from explore_data_utils import add_score
 
+log.debug(time.asctime())
 warnings.filterwarnings('ignore')
 pd.set_option('display.max_columns', 60)
 
@@ -34,8 +36,11 @@ with open(os.path.join(workdir, "lgb_params.json"), 'r') as f:
 lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)
 lgb_clf.fit(x_train, y_train)
 y_pred = lgb_clf.predict(x_test)
+score_df = pd.DataFrame(columns=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
+add_score(score_df, 'auc', y_test, y_pred)
+log.debug(score_df)
 accuracy_score = accuracy_score(y_test, y_pred)
-print("auc score:", accuracy_score, recall_score(y_test, y_pred))
+
 assert accuracy_score > 0.96
 
 # In[]

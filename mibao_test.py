@@ -41,52 +41,51 @@ df.loc[df['state_cao'] == 'manual_check_fail', 'target'] = 0
 df.loc[df['state_cao'] == 'manual_check_success', 'target'] = 1
 df.loc[df['state'].isin(pass_state_values), 'target'] = 1
 df.loc[df['state'].isin(failure_state_values), 'target'] = 0
-df = df[df['target'].notnull()]
 df['target'].value_counts()
 df[df['state_cao'] == 'manual_check_fail']
-# df = df[df['order_id'].isin(df[df['remark'].isin(['机审审核不通过'])]['order_id'].tolist() )!= True]
+df = df[df['order_id'].isin(df[df['remark'].isin(['需人审'])]['order_id'].tolist() )]
 df = df[df['type'].isin(['data_works'])]
-
 df.shape
-
+only_manual_df = df[df['target'].notnull()]
 score_df = pd.DataFrame(columns=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
-add_score(score_df, 'pred result', df['target'].astype(int).tolist(), df['result'].astype(int).tolist())
+add_score(score_df, 'manual_check', only_manual_df['target'].astype(int).tolist(), only_manual_df['result'].astype(int).tolist())
 
 
 # In[]
+# 检查数据清洗是否正确
+
 # 获取训练数据
-all_data_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
-df = all_data_df.copy()
-print("数据量: {}".format(df.shape))
+all_data_ml_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
+print("数据量: {}".format(all_data_ml_df.shape))
 
 
 # 模型测试：逐一读取数据库文件， 检验数据处理结果与机器学习处理结果是否一直
-def model_test():
-    # order_id =9085, 9098的crate_time 是错误的
-    order_ids = random.sample(all_data_df['order_id'].tolist(), 100)
-    order_ids = all_data_df[all_data_df['order_id'] > 1431]['order_id'].tolist()
-    order_ids = [126, 127, 128, 140, 198, 223, 278, 284, 486, 492, 494, 558, 594, 878, 901]
-    order_id = 126
-    error_ids = []
-    for order_id in order_ids:
-        print(order_id)
-        df = get_order_data(order_id, is_sql=True)
-        processed_df = process_data_mibao(df.copy())
-        cmp_df = pd.concat([all_data_df, processed_df])
-        cmp_df = cmp_df[cmp_df['order_id'] == order_id]
-        result = cmp_df.std().sum()
-        if (result > 0):
-            error_ids.append(order_id)
-            print("error with oder_id {}".format(error_ids))
 
-    pass
+# order_id =9085, 9098的crate_time 是错误的
+order_ids = random.sample(all_data_ml_df['order_id'].tolist(), 1000)
+# order_ids = [49769, 54841, 91984, 63778, 40925, 64166, 26342, 76788, 95580, 56953]
+# order_ids = all_data_ml_df[all_data_ml_df['order_id'] > 1]['order_id'].tolist()
+order_id=49769
+error_ids = []
+for order_id in order_ids:
+    print(order_id)
+    df = get_order_data(order_id, is_sql=True)
+    df = process_data_mibao(df)
+    df = df[mibao_ml_features]
+    base_df = all_data_ml_df[mibao_ml_features][all_data_ml_df['order_id'] == order_id]
+    cmp_df = pd.concat([base_df, df])
+    result = cmp_df.std().sum()
+    if (result > 0):
+        error_ids.append(order_id)
+        print("error with oder_id {}".format(error_ids))
 
-# model_test()
+
+print("final result {}".format(error_ids))
 
 
 # In[]
 
-# 测试预测能力
+#  检验在线预测与事后预测结果是否一致
 # all_data_df = pd.read_csv(os.path.join(workdir, 'mibaodata_ml.csv'), encoding='utf-8', engine='python')
 # result_df = pd.read_csv(os.path.join(workdir, 'mibao_mlresult.csv'), encoding='utf-8', engine='python')
 # y_pred = lgb_clf.predict(x)
