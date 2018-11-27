@@ -68,9 +68,8 @@ def get_predict_result(order_id):
         df = df[mibao_ml_features]
         # print(len(df.columns))
         # print(list(set(all_data_df.columns.tolist()).difference(set(df.columns.tolist()))))
-        if len(df.columns) == 53:
-            y_pred = lgb_clf.predict(df)
-            ret_data = y_pred[0]
+        y_pred = lgb_clf.predict(df)
+        ret_data = y_pred[0]
     log.debug("order_id {} result: {}".format(order_id, ret_data))
     # print("reference:", all_data_df[all_data_df['order_id'] == order_id])
     return jsonify({"code": 200, "data": {"result": int(ret_data)}, "message": "SUCCESS"}), 200

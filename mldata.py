@@ -83,7 +83,8 @@ mibao_ml_features = ['merchant_id', 'pay_num', 'added_service', 'bounds_example_
                      'bai_qi_shi_result', 'workplace', 'idcard_pros', 'occupational_identity_type', 'device_type_os',
                      'regist_device_info', 'ingress_type', 'baiqishi_score', 'zhima_cert_result', 'age', 'sex', 'zmf',
                      'xbf', 'final_score', 'final_decision', 'weekday', 'hour',
-                     'price', 'cost', 'phone_book', 'face_live_check'
+                     'price', 'cost',
+                     'phone_book', 'face_live_check', 'account_num'
                      ]
 
 
@@ -190,7 +191,7 @@ def process_data_mibao(df):
 
     df['share_callback'] = np.where(df['share_callback'] < 1, 0, 1)
     df['tag'] = np.where(df['tag'].str.match('new'), 1, 0)
-    # df['account_num'].fillna(value=0, inplace=True)
+    df['account_num'].fillna(value=0, inplace=True)
     df['final_score'].fillna(value=0, inplace=True)
 
     df['cert_no'][df['cert_no'].isnull()] = df['card_id'][df['cert_no'].isnull()]
