@@ -51,7 +51,7 @@ jimi_order_check_result_features = ['order_id', 'check_remark']
 credit_audit_order_features = ['order_id', 'state', 'remark']
 
 # order中的state 分类
-state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pay',
+state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pay', 'exchange_goods',
                 'artificial_credit_check_unpass_canceled', 'pending_artificial_credit_check', 'lease_finished',
                 'return_overdue', 'order_payment_overtime_canceled', 'pending_send_goods',
                 'merchant_not_yet_send_canceled', 'running_overdue', 'buyout_finished', 'pending_user_compensate',
@@ -62,7 +62,7 @@ state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pa
 pass_state_values = ['pending_receive_goods', 'running', 'lease_finished', 'pending_send_goods',
                      'merchant_not_yet_send_canceled', 'buyout_finished', 'pending_user_compensate', 'repairing',
                      'express_rejection_canceled', 'pending_return', 'returning', 'return_goods', 'returned_received',
-                     'relet_finished', 'pending_refund_deposit' ]
+                     'relet_finished', 'pending_refund_deposit', 'exchange_goods' ]
 failure_state_values = ['artificial_credit_check_unpass_canceled', 'return_overdue', 'running_overdue',
                          'system_credit_check_unpass_canceled',
                         'merchant_relet_check_unpass_canceled','merchant_credit_check_unpass_canceled'
@@ -84,7 +84,8 @@ mibao_ml_features = ['merchant_id', 'pay_num', 'added_service', 'bounds_example_
                      'regist_device_info', 'ingress_type', 'baiqishi_score', 'zhima_cert_result', 'age', 'sex', 'zmf',
                      'xbf', 'final_score', 'final_decision', 'weekday', 'hour',
                      'price', 'cost',
-                     'phone_book', 'face_live_check', 'account_num'
+                     'phone_book', 'face_live_check',
+                     # 'account_num' #用到了事后数据，需处理下
                      ]
 
 
@@ -101,8 +102,7 @@ def save_all_tables_mibao():
     df.to_csv("mibao_comment.csv", index=False)
 
 
-# sql_tables = [ 'credit_audit_order']
-# save_all_tables_mibao()
+
 
 
 # In[]
@@ -441,5 +441,6 @@ def get_order_data(order_id=88668, is_sql=False):
 
 
 if __name__ == '__main__':
+    # sql_tables = [ 'credit_audit_order']
     # save_all_tables_mibao()
     print(__name__)

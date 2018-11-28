@@ -33,7 +33,7 @@ plt.rcParams['ytick.labelsize'] = 12
 # read large csv file
 time_started = time.clock()
 # 设置随机种子
-# np.random.seed(88)
+np.random.seed(88)
 # ## 获取数据
 all_data_ml_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
 print("初始数据量: {}".format(all_data_ml_df.shape))
@@ -105,70 +105,67 @@ exit("mibao_ml")
 '''
 is_unbalance:
                 accuracy  precision    recall        f1            confusion_matrix
-binary_logloss  0.980604   0.874033  0.981390  0.924605    [[5731, 114], [15, 791]]
-auc             0.980604   0.873208  0.982630  0.924694    [[5730, 115], [14, 792]]
-auc_alldata     0.983790   0.890222  0.987684  0.936424  [[57485, 979], [99, 7939]]
-
-                accuracy  precision    recall        f1            confusion_matrix
-binary_logloss  0.982108   0.885778  0.978960  0.930041    [[5741, 102], [17, 791]]
-auc             0.982559   0.889640  0.977723  0.931604     [[5745, 98], [18, 790]]
-auc_alldata     0.984948   0.896719  0.989425  0.940794  [[57548, 916], [85, 7953]]
-
+mibao_ml
+binary_logloss  0.982383   0.891525  0.972873  0.930425     [[5791, 96], [22, 789]]
+auc             0.982980   0.894677  0.974106  0.932704     [[5794, 93], [21, 790]]
+auc_alldata     0.986039   0.905685  0.990481  0.946187  [[57819, 856], [79, 8220]]
                            name  importance
-47                  final_score         139
-9                          type         122
-51                        price          99
-52                         cost          93
-3             bounds_example_id          88
-12                       source          79
-11                  device_type          73
-45                          zmf          63
+47                  final_score         159
+9                          type         120
+52                         cost         109
+3             bounds_example_id         103
+51                        price          97
+11                  device_type          78
+43                          age          73
+55                  account_num          72
+45                          zmf          71
+12                       source          67
 0                   merchant_id          58
-43                          age          52
-4             bounds_example_no          51
-27                        phone          51
-30                     category          47
-8            accident_insurance          44
-7                     commented          42
+4             bounds_example_no          57
+16            merchant_store_id          55
+46                          xbf          53
+30                     category          52
+7                     commented          43
 50                         hour          42
-16            merchant_store_id          41
-5                    goods_type          39
-46                          xbf          36
-33               guanzhu_result          36
-20               head_image_url          32
-49                      weekday          26
-32               tongdun_result          25
-1                       pay_num          23
-24                          tag          18
-22          regist_channel_type          18
-18                  fingerprint          16
-31                    old_level          13
-42            zhima_cert_result          12
-23               share_callback          10
-38               device_type_os           8
+8            accident_insurance          42
+53                   phone_book          42
+33               guanzhu_result          38
+27                        phone          35
+5                    goods_type          33
+1                       pay_num          31
+32               tongdun_result          28
+22          regist_channel_type          23
+49                      weekday          22
+18                  fingerprint          21
+24                          tag          19
+42            zhima_cert_result          14
+31                    old_level          11
+38               device_type_os          11
+20               head_image_url           9
+44                          sex           7
+26                   face_check           6
 48               final_decision           5
-34            bai_qi_shi_result           5
-40                 ingress_type           4
-37   occupational_identity_type           3
+23               share_callback           5
+54              face_live_check           5
+37   occupational_identity_type           4
+2                 added_service           3
+14  disposable_payment_discount           3
 6                    lease_term           3
-26                   face_check           3
+34            bai_qi_shi_result           2
 39           regist_device_info           2
-21               recommend_code           2
-2                 added_service           2
+28                      company           1
 36                  idcard_pros           1
 29                company_phone           1
-19                 delivery_way           1
-44                          sex           1
 25            have_bargain_help           1
-35                    workplace           0
+19                 delivery_way           1
+15   disposable_payment_enabled           1
+13                     distance           1
 41               baiqishi_score           0
+40                 ingress_type           0
+35                    workplace           0
+21               recommend_code           0
 17                      deposit           0
-15   disposable_payment_enabled           0
-14  disposable_payment_discount           0
 10                   order_type           0
-13                     distance           0
-28                      company           0
-
 
 '''
 

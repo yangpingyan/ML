@@ -30,9 +30,11 @@ sql = '''
     SELECT o.id as 'order_id', o.`create_time`, o.state, r.`type`, r.`result`, r.`remark`, cao.state as 'state_cao', cao.`remark` as 'remark_cao' FROM `order` o 
 LEFT JOIN risk_order r ON r.`order_id` = o.id
 LEFT JOIN credit_audit_order cao ON cao.`order_id` = o.id
-WHERE o.id > 107793 
+WHERE o.id > 108425 
 ORDER BY o.state DESC;
     '''
+# 108034
+
 df = pd.read_sql_query(sql, sql_engine)
 df['state_cao'].value_counts()
 # 标注人工审核结果于target字段
@@ -45,10 +47,26 @@ df['target'].value_counts()
 df[df['state_cao'] == 'manual_check_fail']
 df = df[df['order_id'].isin(df[df['remark'].isin(['需人审'])]['order_id'].tolist() )]
 df = df[df['type'].isin(['data_works'])]
-df.shape
+
+
+
+
+
+
 only_manual_df = df[df['target'].notnull()]
+only_manual_df['target'] = only_manual_df['target'].astype(int)
+only_manual_df['result'] = only_manual_df['result'].astype(int)
+only_manual_df['result_cmp'] = only_manual_df['target'] - only_manual_df['result']
+
 score_df = pd.DataFrame(columns=['accuracy', 'precision', 'recall', 'f1', 'confusion_matrix'])
 add_score(score_df, 'manual_check', only_manual_df['target'].astype(int).tolist(), only_manual_df['result'].astype(int).tolist())
+
+df['target'].fillna(0, inplace=True)
+df['target'] = df['target'].astype(int)
+df['result'] = df['result'].astype(int)
+df['result_cmp'] = df['target'] - df['result']
+
+add_score(score_df, 'all_check', df['target'].astype(int).tolist(), df['result'].astype(int).tolist())
 
 
 # In[]
@@ -64,8 +82,8 @@ print("数据量: {}".format(all_data_ml_df.shape))
 # order_id =9085, 9098的crate_time 是错误的
 order_ids = random.sample(all_data_ml_df['order_id'].tolist(), 1000)
 # order_ids = [49769, 54841, 91984, 63778, 40925, 64166, 26342, 76788, 95580, 56953]
-# order_ids = all_data_ml_df[all_data_ml_df['order_id'] > 1]['order_id'].tolist()
-order_id=49769
+order_ids = all_data_ml_df[all_data_ml_df['order_id'] > 108034]['order_id'].tolist()
+order_id=108105
 error_ids = []
 for order_id in order_ids:
     print(order_id)

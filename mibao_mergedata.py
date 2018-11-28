@@ -32,6 +32,7 @@ df = all_data_merged_df.copy()
 
 # 若state字段有新的状态产生， 抛出异常
 state_values_newest = df['state'].unique().tolist()
+print(list(set(state_values_newest).difference(set(state_values))))
 assert (len(list(set(state_values_newest).difference(set(state_values)))) == 0)
 
 # 丢弃不需要的数据
@@ -67,8 +68,8 @@ df.drop(
 
 # print(set(df.columns.tolist()) - set(df_sql.columns.tolist()))
 # 保存数据
-df.to_csv("mibaodata_merged.csv", index=False)
-print("mibaodata_merged.csv saved with shape {}".format(df.shape))
+# df.to_csv("mibaodata_merged.csv", index=False)
+# print("mibaodata_merged.csv saved with shape {}".format(df.shape))
 # missing_values_table(df)
 
 
