@@ -34,7 +34,7 @@ WHERE o.id > 108425
 ORDER BY o.state DESC;
     '''
 # 108034
-
+# 108425
 df = pd.read_sql_query(sql, sql_engine)
 df['state_cao'].value_counts()
 # 标注人工审核结果于target字段
@@ -47,11 +47,6 @@ df['target'].value_counts()
 df[df['state_cao'] == 'manual_check_fail']
 df = df[df['order_id'].isin(df[df['remark'].isin(['需人审'])]['order_id'].tolist() )]
 df = df[df['type'].isin(['data_works'])]
-
-
-
-
-
 
 only_manual_df = df[df['target'].notnull()]
 only_manual_df['target'] = only_manual_df['target'].astype(int)
