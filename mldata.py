@@ -10,7 +10,7 @@ import re
 import os
 import time
 from mibao_log import log
-from sql import sql_engine
+from sql import *
 from mltools import *
 import warnings
 
@@ -309,7 +309,12 @@ def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=Fals
     if is_sql:
         sql = "SELECT {} FROM `{}` o WHERE o.{} = {};".format(",".join(features), filename, table, id_value)
         # print(sql)
-        df = pd.read_sql_query(sql, sql_engine)
+        try:
+            df = pd.read_sql_query(sql, sql_engine)
+        except:
+            sql_engine = get_sql_engine()
+            df = pd.read_sql_query(sql, sql_engine)
+
     else:
         df = pd.read_csv(os.path.join(workdir, 'datasets', filename + '.csv'), encoding='utf-8', engine='python')
         df = df[features]

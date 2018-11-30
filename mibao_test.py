@@ -22,6 +22,7 @@ import logging
 from mibao_log import log
 import random
 from explore_data_utils import *
+from sql import *
 
 warnings.filterwarnings('ignore')
 
@@ -35,7 +36,14 @@ ORDER BY o.state DESC;
     '''
 # 108034
 # 108425
-df = pd.read_sql_query(sql, sql_engine)
+try:
+    df = pd.read_sql_query(sql, sql_engine)
+except:
+    sql_engine = get_sql_engine()
+    df = pd.read_sql_query(sql, sql_engine)
+
+
+
 df['state_cao'].value_counts()
 # 标注人工审核结果于target字段
 df['target'] = None

@@ -41,7 +41,12 @@ def sql_connect(sql_file, ssh_pkey=None):
     # pd.read_sql("SELECT * from `order` o where o.id = 88668", sql_engine)
 
 # 初始化数据库连接，使用pymysql模块
-sql_file = os.path.join(workdir, 'sql_mibao.json')
-ssh_pkey = os.path.join(workdir, 'sql_pkey') if debug_mode else None
-sql_engine = sql_connect(sql_file, ssh_pkey)
+def get_sql_engine():
+    sql_file = os.path.join(workdir, 'sql_mibao.json')
+    ssh_pkey = os.path.join(workdir, 'sql_pkey') if debug_mode else None
+    sql_engine = sql_connect(sql_file, ssh_pkey)
+
+    return sql_engine
+
+sql_engine = get_sql_engine()
 
