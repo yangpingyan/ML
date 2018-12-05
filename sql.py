@@ -12,6 +12,8 @@ import json
 from sqlalchemy import create_engine
 from mibao_log import log
 from mltools import *
+from sql import *
+global sql_engine
 
 def sql_connect(sql_file, ssh_pkey=None):
     '''连接数据库'''
@@ -49,4 +51,16 @@ def get_sql_engine():
     return sql_engine
 
 sql_engine = get_sql_engine()
+
+def read_sql_query(sql):
+    global sql_engine
+
+    try:
+        df = pd.read_sql_query(sql, sql_engine)
+    except:
+        sql_engine = get_sql_engine()
+        df = pd.read_sql_query(sql, sql_engine)
+
+    return df
+
 

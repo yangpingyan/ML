@@ -21,7 +21,8 @@ from explore_data_utils import add_score
 log.debug(time.asctime())
 warnings.filterwarnings('ignore')
 pd.set_option('display.max_columns', 60)
-
+global mibaodata_ml_online_df
+mibaodata_ml_online_df = pd.DataFrame()
 # 获取训练数据
 df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
 print("数据量: {}".format(df.shape))
@@ -60,6 +61,8 @@ app = Flask(__name__)
 @app.route('/ml_result/<int:order_id>', methods=['GET'])
 def get_predict_result(order_id):
     # log.debug("order_id: {}".format(order_id))
+    global mibaodata_ml_online_df
+    time.sleep(5)
     ret_data = 2
     df = get_order_data(order_id, is_sql=True)
     if len(df) != 0:
@@ -70,6 +73,8 @@ def get_predict_result(order_id):
         # print(list(set(all_data_df.columns.tolist()).difference(set(df.columns.tolist()))))
         y_pred = lgb_clf.predict(df)
         ret_data = y_pred[0]
+        df['order_id'] = order_id
+        mibaodata_ml_online_df = pd.concat([mibaodata_ml_online_df, df], axis=0)
     log.debug("order_id {} result: {}".format(order_id, ret_data))
     # print("reference:", all_data_df[all_data_df['order_id'] == order_id])
     return jsonify({"code": 200, "data": {"result": int(ret_data)}, "message": "SUCCESS"}), 200
@@ -77,11 +82,12 @@ def get_predict_result(order_id):
 
 @app.route('/debug/<int:debug>', methods=['GET'])
 def set_debug_mode(debug):
+    global mibaodata_ml_online_df
     if debug == 1:
         log.setLevel(logging.DEBUG)
     else:
         log.setLevel(logging.INFO)
-
+    mibaodata_ml_online_df.to_csv('mibaodata_ml_online.csv', index=False)
     log.debug("log mode ", log.level)
     return jsonify({'log_mode': int(log.level)}), 201
 

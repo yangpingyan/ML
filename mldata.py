@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 # 需要读取的数据库表
 sql_tables = ['bargain_help', 'face_id', 'face_id_liveness', 'jimi_order_check_result', 'order', 'order_detail',
               'order_express', 'order_goods', 'order_phone_book', 'risk_order', 'tongdun', 'user', 'user_credit',
-              'user_device', 'user_third_party_account', 'user_zhima_cert', 'credit_audit_order']
+              'user_device', 'user_third_party_account', 'user_zhima_cert', 'credit_audit_order', 'risk_white_list']
 
 # 数据库表中的相关字段
 order_features = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
@@ -47,6 +47,7 @@ risk_order_features = ['order_id', 'type', 'result', 'detail_json', 'remark']
 tongdun_features = ['order_number', 'final_score', 'final_decision']
 user_third_party_account_features = ['user_id']
 user_zhima_cert_features = ['user_id', 'status']
+risk_white_list_features = ['user_id']
 jimi_order_check_result_features = ['order_id', 'check_remark']
 credit_audit_order_features = ['order_id', 'state', 'remark']
 
@@ -58,14 +59,16 @@ state_values = ['pending_receive_goods', 'running', 'user_canceled', 'pending_pa
                 'repairing', 'express_rejection_canceled', 'pending_return', 'returning', 'return_goods',
                 'pending_relet_check', 'returned_received', 'relet_finished', 'merchant_relet_check_unpass_canceled',
                 'system_credit_check_unpass_canceled', 'pending_jimi_credit_check', 'pending_relet_start',
-                'pending_refund_deposit', 'merchant_credit_check_unpass_canceled', 'pending_order_receiving']
+                'pending_refund_deposit', 'merchant_credit_check_unpass_canceled', 'pending_order_receiving',
+                'pending_relet_pay', 'pending_compensate_check']
 pass_state_values = ['pending_receive_goods', 'running', 'lease_finished', 'pending_send_goods',
                      'merchant_not_yet_send_canceled', 'buyout_finished', 'pending_user_compensate', 'repairing',
                      'express_rejection_canceled', 'pending_return', 'returning', 'return_goods', 'returned_received',
-                     'relet_finished', 'pending_refund_deposit', 'exchange_goods' ]
+                     'relet_finished', 'pending_refund_deposit', 'exchange_goods', 'pending_relet_pay',
+                     'pending_compensate_check']
 failure_state_values = ['artificial_credit_check_unpass_canceled', 'return_overdue', 'running_overdue',
-                         'system_credit_check_unpass_canceled',
-                        'merchant_relet_check_unpass_canceled','merchant_credit_check_unpass_canceled'
+                        'system_credit_check_unpass_canceled',
+                        'merchant_relet_check_unpass_canceled', 'merchant_credit_check_unpass_canceled'
                         ]
 unknow_state_values = ['pending_order_receiving', 'pending_jimi_credit_check', 'order_payment_overtime_canceled',
                        'pending_artificial_credit_check', 'user_canceled', 'pending_relet_start',
@@ -94,18 +97,13 @@ def save_all_tables_mibao():
         print(table)
         feature_list = eval(table + '_features')
         sql = "SELECT {} FROM `{}`;".format(",".join(feature_list), table)
-        df = pd.read_sql_query(sql, sql_engine)
+        df = read_sql_query(sql)
         df.to_csv("{}.csv".format(os.path.join(workdir, table)), index=False)
 
     sql = ''' SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns  WHERE table_schema='mibao'; '''
-    df = pd.read_sql_query(sql, sql_engine)
+    df = read_sql_query(sql)
     df.to_csv("mibao_comment.csv", index=False)
 
-
-
-
-
-# In[]
 
 def process_data_mibao(df):
     # 取phone前3位
@@ -200,8 +198,8 @@ def process_data_mibao(df):
 
     # 处理芝麻信用分 '>600' 更改成600
     df['zmxy_score'][df['zmxy_score'].isin(['', ' '])] = 0
-    zmf = [0] * len(df)
-    xbf = [0] * len(df)
+    zmf = [0.0] * len(df)
+    xbf = [0.0] * len(df)
     for row, detail in enumerate(df['zmxy_score'].tolist()):
         # print(row, detail)
         if isinstance(detail, type('hh')):
@@ -309,12 +307,7 @@ def read_mlfile(filename, features, table='order_id', id_value=None, is_sql=Fals
     if is_sql:
         sql = "SELECT {} FROM `{}` o WHERE o.{} = {};".format(",".join(features), filename, table, id_value)
         # print(sql)
-        try:
-            df = pd.read_sql_query(sql, sql_engine)
-        except:
-            sql_engine = get_sql_engine()
-            df = pd.read_sql_query(sql, sql_engine)
-
+        df = read_sql_query(sql)
     else:
         df = pd.read_csv(os.path.join(workdir, 'datasets', filename + '.csv'), encoding='utf-8', engine='python')
         df = df[features]
@@ -446,6 +439,6 @@ def get_order_data(order_id=88668, is_sql=False):
 
 
 if __name__ == '__main__':
-    # sql_tables = [ 'credit_audit_order']
+    # sql_tables = ['risk_white_list']
     # save_all_tables_mibao()
     print(__name__)

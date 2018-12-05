@@ -26,12 +26,14 @@ from sql import *
 
 warnings.filterwarnings('ignore')
 
+ml_order_id = 108292
+pred_order_id = 108425
 # 查验审核准确度
 sql = '''
     SELECT o.id as 'order_id', o.`create_time`, o.state, r.`type`, r.`result`, r.`remark`, cao.state as 'state_cao', cao.`remark` as 'remark_cao' FROM `order` o 
 LEFT JOIN risk_order r ON r.`order_id` = o.id
 LEFT JOIN credit_audit_order cao ON cao.`order_id` = o.id
-WHERE o.id > 108425 
+WHERE o.id > 109884 
 ORDER BY o.state DESC;
     '''
 # 108034
@@ -41,7 +43,6 @@ try:
 except:
     sql_engine = get_sql_engine()
     df = pd.read_sql_query(sql, sql_engine)
-
 
 
 df['state_cao'].value_counts()
@@ -72,6 +73,40 @@ df['result_cmp'] = df['target'] - df['result']
 add_score(score_df, 'all_check', df['target'].astype(int).tolist(), df['result'].astype(int).tolist())
 
 
+
+# In[]
+# 验证机器学习结果是否一致
+
+# 获取训练数据
+all_data_ml_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
+df = all_data_ml_df[all_data_ml_df['order_id'] <= ml_order_id]
+print("数据量: {}".format(df.shape))
+x = df[mibao_ml_features]
+y = df['target'].tolist()
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
+
+# 机器学习模型训练
+with open(os.path.join(workdir, "lgb_params.json"), 'r') as f:
+    lgb_params_auc = json.load(f)
+
+lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)
+lgb_clf.fit(x_train, y_train)
+y_pred = lgb_clf.predict(x_test)
+add_score(score_df, 'pred_train', y_test, y_pred)
+
+order_ids = only_manual_df['order_id'].tolist()
+df = all_data_ml_df[all_data_ml_df['order_id'].isin(order_ids)]
+x = df[mibao_ml_features].copy()
+y = df['target'].tolist().copy()
+y_pred = lgb_clf.predict(x)
+add_score(score_df, 'pred_check', y, y_pred)
+df['pred_result'] = y_pred
+only_manual_df = pd.merge(only_manual_df, df[['order_id', 'pred_result']], on='order_id', how='left')
+
+only_manual_df[only_manual_df['result'] != only_manual_df['pred_result']]
+
+
+
 # In[]
 # 检查数据清洗是否正确
 
@@ -79,14 +114,12 @@ add_score(score_df, 'all_check', df['target'].astype(int).tolist(), df['result']
 all_data_ml_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
 print("数据量: {}".format(all_data_ml_df.shape))
 
-
 # 模型测试：逐一读取数据库文件， 检验数据处理结果与机器学习处理结果是否一直
-
-# order_id =9085, 9098的crate_time 是错误的
-order_ids = random.sample(all_data_ml_df['order_id'].tolist(), 1000)
+# order_ids = random.sample(all_data_ml_df['order_id'].tolist(), 1000)
 # order_ids = [49769, 54841, 91984, 63778, 40925, 64166, 26342, 76788, 95580, 56953]
-order_ids = all_data_ml_df[all_data_ml_df['order_id'] > 108034]['order_id'].tolist()
-order_id=108105
+# order_ids = all_data_ml_df[all_data_ml_df['order_id'] > 108034]['order_id'].tolist()
+order_ids = only_manual_df['order_id'].tolist()
+order_id=109748
 error_ids = []
 for order_id in order_ids:
     print(order_id)
@@ -99,6 +132,7 @@ for order_id in order_ids:
     if (result > 0):
         error_ids.append(order_id)
         print("error with oder_id {}".format(error_ids))
+        break
 
 
 print("final result {}".format(error_ids))
