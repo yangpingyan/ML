@@ -78,9 +78,9 @@ unknow_state_values = ['pending_order_receiving', 'pending_jimi_credit_check', '
 
 # 机器学习中使用到的特征
 mibao_ml_features = ['merchant_id', 'pay_num', 'added_service', 'bounds_example_id', 'bounds_example_no',
-                     'goods_type', 'lease_term', 'commented', 'accident_insurance', 'type', 'order_type', 'device_type',
+                     'goods_type', 'lease_term', 'commented', 'accident_insurance', 'order_type', 'device_type',
                      'source', 'distance', 'disposable_payment_discount', 'disposable_payment_enabled',
-                     'merchant_store_id', 'deposit', 'fingerprint', 'delivery_way', 'head_image_url', 'recommend_code',
+                     'merchant_store_id', 'fingerprint', 'delivery_way', 'head_image_url', 'recommend_code',
                      'regist_channel_type', 'share_callback', 'tag', 'have_bargain_help', 'face_check', 'phone',
                      'company', 'company_phone', 'category', 'old_level', 'tongdun_result', 'guanzhu_result',
                      'bai_qi_shi_result', 'workplace', 'idcard_pros', 'occupational_identity_type', 'device_type_os',
@@ -89,6 +89,7 @@ mibao_ml_features = ['merchant_id', 'pay_num', 'added_service', 'bounds_example_
                      'price', 'cost',
                      'phone_book', 'face_live_check',
                      # 'account_num' #用到了事后数据，需处理下
+                     # 'deposit', 'type',  #有押金的审核肯定通过
                      ]
 
 
@@ -100,7 +101,7 @@ def save_all_tables_mibao():
         df = read_sql_query(sql)
         df.to_csv("{}.csv".format(os.path.join(workdir, table)), index=False)
 
-    sql = ''' SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns  WHERE table_schema='mibao'; '''
+    sql = '''SELECT table_name, column_name, DATA_TYPE, COLUMN_COMMENT FROM information_schema.columns; '''
     df = read_sql_query(sql)
     df.to_csv("mibao_comment.csv", index=False)
 
@@ -440,5 +441,5 @@ def get_order_data(order_id=88668, is_sql=False):
 
 if __name__ == '__main__':
     # sql_tables = ['risk_white_list']
-    # save_all_tables_mibao()
+    save_all_tables_mibao()
     print(__name__)

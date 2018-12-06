@@ -62,14 +62,13 @@ app = Flask(__name__)
 def get_predict_result(order_id):
     # log.debug("order_id: {}".format(order_id))
     global mibaodata_ml_online_df
-    time.sleep(5)
+    time.sleep(4)
     ret_data = 2
     df = get_order_data(order_id, is_sql=True)
     if len(df) != 0:
         log.debug(df[['order_id', 'state', 'state_cao']])
         df = process_data_mibao(df)
         df = df[mibao_ml_features]
-        # print(len(df.columns))
         # print(list(set(all_data_df.columns.tolist()).difference(set(df.columns.tolist()))))
         y_pred = lgb_clf.predict(df)
         ret_data = y_pred[0]
@@ -88,7 +87,7 @@ def set_debug_mode(debug):
     else:
         log.setLevel(logging.INFO)
     mibaodata_ml_online_df.to_csv('mibaodata_ml_online.csv', index=False)
-    log.debug("log mode ", log.level)
+    print("log mode: {}".format(log.level))
     return jsonify({'log_mode': int(log.level)}), 201
 
 

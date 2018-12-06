@@ -26,16 +26,16 @@ from sql import *
 
 warnings.filterwarnings('ignore')
 
-ml_order_id = 108292
-pred_order_id = 108425
+ml_start_order_id = 109957
+pred_start_order_id = 109975
 # 查验审核准确度
 sql = '''
     SELECT o.id as 'order_id', o.`create_time`, o.state, r.`type`, r.`result`, r.`remark`, cao.state as 'state_cao', cao.`remark` as 'remark_cao' FROM `order` o 
 LEFT JOIN risk_order r ON r.`order_id` = o.id
 LEFT JOIN credit_audit_order cao ON cao.`order_id` = o.id
-WHERE o.id > 109884 
+WHERE o.id > {} 
 ORDER BY o.state DESC;
-    '''
+    '''.format(pred_start_order_id)
 # 108034
 # 108425
 try:
@@ -79,7 +79,7 @@ add_score(score_df, 'all_check', df['target'].astype(int).tolist(), df['result']
 
 # 获取训练数据
 all_data_ml_df = pd.read_csv(os.path.join(workdir, "mibaodata_ml.csv"), encoding='utf-8', engine='python')
-df = all_data_ml_df[all_data_ml_df['order_id'] <= ml_order_id]
+df = all_data_ml_df[all_data_ml_df['order_id'] <= ml_start_order_id]
 print("数据量: {}".format(df.shape))
 x = df[mibao_ml_features]
 y = df['target'].tolist()
