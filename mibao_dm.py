@@ -98,7 +98,7 @@ exit('dm')
 # 查看各特征关联度
 features = ['target',
             'pay_num', 'merchant_store_id', 'merchant_id',
-            'added_service', 'bounds_example_id', 'bounds_example_no',
+            'added_service', 'bounds_example_id',
             'goods_type', 'commented', 'accident_insurance',
             'type', 'order_type', 'device_type', 'source', 'distance',
             'disposable_payment_discount', 'disposable_payment_enabled',

@@ -100,80 +100,83 @@ print(score_df)
 
 # In[1]
 
-print("Mission Complete")
-exit("mibao_ml")
-'''
-is_unbalance:
-                accuracy  precision    recall        f1            confusion_matrix
-mibao_ml
-binary_logloss  0.982383   0.891525  0.972873  0.930425     [[5791, 96], [22, 789]]
-auc             0.982980   0.894677  0.974106  0.932704     [[5794, 93], [21, 790]]
-auc_alldata     0.986039   0.905685  0.990481  0.946187  [[57819, 856], [79, 8220]]
-                           name  importance
-47                  final_score         159
-9                          type         120
-52                         cost         109
-3             bounds_example_id         103
-51                        price          97
-11                  device_type          78
-43                          age          73
-55                  account_num          72
-45                          zmf          71
-12                       source          67
-0                   merchant_id          58
-4             bounds_example_no          57
-16            merchant_store_id          55
-46                          xbf          53
-30                     category          52
-7                     commented          43
-50                         hour          42
-8            accident_insurance          42
-53                   phone_book          42
-33               guanzhu_result          38
-27                        phone          35
-5                    goods_type          33
-1                       pay_num          31
-32               tongdun_result          28
-22          regist_channel_type          23
-49                      weekday          22
-18                  fingerprint          21
-24                          tag          19
-42            zhima_cert_result          14
-31                    old_level          11
-38               device_type_os          11
-20               head_image_url           9
-44                          sex           7
-26                   face_check           6
-48               final_decision           5
-23               share_callback           5
-54              face_live_check           5
-37   occupational_identity_type           4
-2                 added_service           3
-14  disposable_payment_discount           3
-6                    lease_term           3
-34            bai_qi_shi_result           2
-39           regist_device_info           2
-28                      company           1
-36                  idcard_pros           1
-29                company_phone           1
-25            have_bargain_help           1
-19                 delivery_way           1
-15   disposable_payment_enabled           1
-13                     distance           1
-41               baiqishi_score           0
-40                 ingress_type           0
-35                    workplace           0
-21               recommend_code           0
-17                      deposit           0
-10                   order_type           0
 
 '''
+is_unbalance:
+                accuracy  precision    recall        f1              confusion_matrix
+binary_logloss  0.911778   0.598563  0.891795  0.716332      [[5389, 503], [91, 750]]
+auc             0.924105   0.643728  0.878716  0.743087     [[5483, 409], [102, 739]]
+auc_alldata     0.938507   0.686877  0.937907  0.793000  [[55255, 3615], [525, 7930]]
+                accuracy  precision    recall        f1              confusion_matrix
+binary_logloss  0.949502   0.856330  0.715815  0.779793     [[5791, 101], [239, 602]]
+auc             0.950097   0.859175  0.718193  0.782383      [[5793, 99], [237, 604]]
+auc_alldata     0.963520   0.922049  0.775044  0.842180  [[58316, 554], [1902, 6553]]
+
+
+                           name  importance
+47                        price         408
+39                          age         398
+43                  final_score         387
+48                         cost         351
+23                        phone         347
+41                          zmf         295
+46                         hour         265
+42                          xbf         248
+0                   merchant_id         194
+8                   device_type         179
+45                      weekday         168
+6            accident_insurance         148
+3                    goods_type         146
+26                     category         129
+9                        source         126
+5                     commented         119
+51            bounds_example_id         112
+49                   phone_book         109
+16               head_image_url          93
+29               guanzhu_result          91
+18          regist_channel_type          79
+38            zhima_cert_result          76
+32                  idcard_pros          60
+20                          tag          56
+13            merchant_store_id          49
+1                       pay_num          48
+4                    lease_term          47
+30            bai_qi_shi_result          46
+34               device_type_os          46
+28               tongdun_result          42
+27                    old_level          41
+40                          sex          37
+33   occupational_identity_type          35
+22                   face_check          29
+36                 ingress_type          25
+11  disposable_payment_discount          21
+24                      company          18
+15                 delivery_way          17
+21            have_bargain_help          17
+7                    order_type          16
+44               final_decision          16
+14                  fingerprint          16
+25                company_phone          16
+50              face_live_check          13
+35           regist_device_info          12
+17               recommend_code           8
+2                 added_service           7
+19               share_callback           5
+10                     distance           5
+37               baiqishi_score           4
+31                    workplace           0
+12   disposable_payment_enabled           0
+
+
+
+'''
+
 
 # LightBGM with Random Search
 param_grid = {
     'boosting_type': ['gbdt', 'goss', 'dart'],
-    'n_estimators': range(1, 500),
-    'num_leaves': list(range(20, 150)),
+    'n_estimators': range(100, 600),
+    'num_leaves': list(range(20, 200)),
     'learning_rate': list(np.logspace(np.log10(0.005), np.log10(0.5), base=10, num=1000)),
     #
     # 'subsample_for_bin': list(range(20000, 300000, 20000)),
@@ -182,12 +185,12 @@ param_grid = {
     # 'reg_lambda': list(np.linspace(0, 1)),
     # 'colsample_bytree': list(np.linspace(0.6, 1, 10)),
     # 'subsample': list(np.linspace(0.5, 1, 100)),
-    # 'is_unbalance': [True, False]
+    'is_unbalance': [True, False]
 }
 
 scorings = ['neg_log_loss', 'accuracy', 'precision', 'recall', 'roc_auc', 'f1', 'f1_micro', 'average_precision',
             'f1_macro', 'f1_weighted']
-
+# scorings = ['f1_micro']
 for scoring in scorings:
     lgb_clf = lgb.LGBMClassifier()
     rnd_search = RandomizedSearchCV(lgb_clf, param_distributions=param_grid, n_iter=5, cv=5, scoring=scoring, n_jobs=-1)
@@ -199,6 +202,9 @@ for scoring in scorings:
 
     # Train and make predicions with model
     lgb_clf = rnd_search.best_estimator_
+
+    with open('{}.json'.format(scoring), 'w') as f:
+        json.dump(lgb_clf.get_params(), f, indent=4)
     lgb_clf.fit(x_train, y_train)
     y_pred = lgb_clf.predict(x_test)
     add_score(score_df, scoring + '_rs', y_test, y_pred)
@@ -209,26 +215,26 @@ for scoring in scorings:
 # importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
 # print(importance_df)
 print('run time: {:.2f}'.format(time.clock() - time_started))
-score_df.sort_values(by='recall', inplace=True)
+score_df.sort_values(by='f1', inplace=True)
 print(score_df)
 
 # In[2]
-exit('ml')
+# exit('ml')
 '''
-                      accuracy  precision    recall        f1            confusion_matrix
-precision_rs          0.975833   0.951327  0.834411  0.889042    [[5856, 33], [128, 645]]
-roc_auc_rs            0.981837   0.935829  0.905563  0.920447     [[5841, 48], [73, 700]]
-neg_log_loss_rs       0.982288   0.938420  0.906856  0.922368     [[5843, 46], [72, 701]]
-recall_rs             0.981987   0.935915  0.906856  0.921156     [[5841, 48], [72, 701]]
-f1_weighted_rs        0.982137   0.937166  0.906856  0.921762     [[5842, 47], [72, 701]]
-f1_macro_rs           0.982438   0.938503  0.908150  0.923077     [[5843, 46], [71, 702]]
-f1_micro_rs           0.982588   0.938585  0.909444  0.923784     [[5843, 46], [70, 703]]
-average_precision_rs  0.982288   0.936085  0.909444  0.922572     [[5841, 48], [70, 703]]
-f1_rs                 0.982137   0.933687  0.910737  0.922069     [[5839, 50], [69, 704]]
-accuracy_rs           0.982738   0.937500  0.912031  0.924590     [[5842, 47], [68, 705]]
-binary_logloss        0.974632   0.851163  0.946960  0.896509    [[5761, 128], [41, 732]]
-auc                   0.979135   0.881010  0.948254  0.913396     [[5790, 99], [40, 733]]
-auc_alldata           0.987151   0.913343  0.989110  0.949718  [[57679, 767], [89, 8084]]
+                      accuracy  precision    recall        f1              confusion_matrix
+binary_logloss        0.911778   0.598563  0.891795  0.716332      [[5389, 503], [91, 750]]
+auc                   0.924105   0.643728  0.878716  0.743087     [[5483, 409], [102, 739]]
+precision_rs          0.948463   0.870871  0.689655  0.769741      [[5806, 86], [261, 580]]
+f1_macro_rs           0.947869   0.855072  0.701546  0.770738     [[5792, 100], [251, 590]]
+neg_log_loss_rs       0.948611   0.863436  0.699168  0.772668      [[5799, 93], [253, 588]]
+roc_auc_rs            0.950097   0.863309  0.713436  0.781250      [[5797, 95], [241, 600]]
+accuracy_rs           0.950542   0.872434  0.707491  0.781353      [[5805, 87], [246, 595]]
+f1_weighted_rs        0.950691   0.865136  0.717004  0.784135      [[5798, 94], [238, 603]]
+f1_rs                 0.951285   0.874453  0.712247  0.785059      [[5806, 86], [242, 599]]
+average_precision_rs  0.950839   0.864286  0.719382  0.785204      [[5797, 95], [236, 605]]
+recall_rs             0.950988   0.865522  0.719382  0.785714      [[5798, 94], [236, 605]]
+f1_micro_rs           0.951285   0.868006  0.719382  0.786736      [[5800, 92], [236, 605]]
+auc_alldata           0.938507   0.686877  0.937907  0.793000  [[55255, 3615], [525, 7930]]
 '''
 '''
 调试代码
@@ -248,6 +254,8 @@ missing_values_table(df)
 6. 下单使用的设备，通过什么客户端下单（微信、支付宝、京东、网页）
 7. 是否有推荐人， 推荐人是否通过审核
 #. 租借个数
+9. 利率
+10.红包
 
  b. 创造未被保存到数据库中的特征：年化利率,是否有2个手机号。
 '''

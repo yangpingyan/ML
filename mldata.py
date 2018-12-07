@@ -27,7 +27,7 @@ sql_tables = ['bargain_help', 'face_id', 'face_id_liveness', 'jimi_order_check_r
 
 # 数据库表中的相关字段
 order_features = ['id', 'create_time', 'merchant_id', 'user_id', 'state', 'cost', 'installment', 'pay_num',
-                  'added_service', 'bounds_example_id', 'bounds_example_no', 'goods_type', 'lease_term',
+                  'added_service', 'bounds_example_id', 'goods_type', 'lease_term',
                   'commented', 'accident_insurance', 'type', 'order_type', 'device_type', 'source', 'distance',
                   'disposable_payment_discount', 'disposable_payment_enabled', 'lease_num', 'merchant_store_id',
                   'deposit', 'hit_merchant_white_list', 'fingerprint', 'cancel_reason', 'delivery_way',
@@ -77,7 +77,7 @@ unknow_state_values = ['pending_order_receiving', 'pending_jimi_credit_check', '
 # print(list(set(state_values).difference(set(pass_state_values + failure_state_values))))
 
 # 机器学习中使用到的特征
-mibao_ml_features = ['merchant_id', 'pay_num', 'added_service', 'bounds_example_id', 'bounds_example_no',
+mibao_ml_features = ['merchant_id', 'pay_num', 'added_service',
                      'goods_type', 'lease_term', 'commented', 'accident_insurance', 'order_type', 'device_type',
                      'source', 'distance', 'disposable_payment_discount', 'disposable_payment_enabled',
                      'merchant_store_id', 'fingerprint', 'delivery_way', 'head_image_url', 'recommend_code',
@@ -88,6 +88,7 @@ mibao_ml_features = ['merchant_id', 'pay_num', 'added_service', 'bounds_example_
                      'xbf', 'final_score', 'final_decision', 'weekday', 'hour',
                      'price', 'cost',
                      'phone_book', 'face_live_check',
+                     'bounds_example_id',
                      # 'account_num' #用到了事后数据，需处理下
                      # 'deposit', 'type',  #有押金的审核肯定通过
                      ]
@@ -175,7 +176,7 @@ def process_data_mibao(df):
     df['zmxyScore'] = df['zmxyScore'].map(lambda x: float(x) if str(x) > '0' else 0)
 
     # 只判断是否空值的特征处理
-    features_cat_null = ['bounds_example_id', 'bounds_example_no', 'distance', 'fingerprint', 'added_service',
+    features_cat_null = ['bounds_example_id', 'distance', 'fingerprint', 'added_service',
                          'recommend_code', 'regist_device_info', 'company', 'company_phone', 'workplace',
                          'idcard_pros', ]
     for feature in features_cat_null:

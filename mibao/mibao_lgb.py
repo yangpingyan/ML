@@ -44,33 +44,6 @@ datasets_path = os.getcwd() + '\\datasets\\'
 df = pd.read_csv("{}mibaodata_ml.csv".format(datasets_path), encoding='utf-8', engine='python')
 print("初始数据量: {}".format(df.shape))
 
-features = ['target',
-            'merchant_id', 'pay_num',
-            'added_service', 'bounds_example_id', 'bounds_example_no',
-            'goods_type', 'lease_term', 'commented', 'accident_insurance',
-            'type', 'order_type', 'device_type', 'source', 'distance',
-            'disposable_payment_discount', 'disposable_payment_enabled',
-            'merchant_store_id', 'deposit', 'fingerprint',
-            'delivery_way', 'head_image_url', 'recommend_code',
-            'regist_channel_type', 'share_callback', 'tag',
-            'have_bargain_help', 'face_check', 'face_live_check', 'phone',
-            'company', 'emergency_contact_name', 'phone_book',
-            'emergency_contact_phone', 'emergency_contact_relation',
-            'category', 'old_level', 'tongdun_result',
-            'guanzhu_result', 'bai_qi_shi_result', 'workplace', 'idcard_pros',
-            'occupational_identity_type', 'company_phone', 'device_type_os',
-            'regist_device_info', 'ingress_type', 'account_num', 'baiqishi_score',
-            'zhima_cert_result', 'age', 'sex', 'zmf', 'xbf', 'final_score', 'final_decision',
-            #      'zu_lin_ren_shen_fen_zheng_yan_zheng', 'zu_lin_ren_xing_wei', 'shou_ji_hao_yan_zheng', 'fan_qi_za', 'tdTotalScore',
-            'WEEKDAY(create_time)',
-            'HOUR(create_time)',
-            # 暂时注释
-            # 数值类型需转换
-            'price', 'cost',
-            # 实际场景效果不好的特征 # 0.971， 0.930
-            # 'DAY(create_time)', 'MONTH(create_time)', 'YEAR(create_time)'
-            ]
-
 print(list(set(df.columns.tolist()).difference(set(features))))
 df = df[features]
 '''

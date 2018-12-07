@@ -42,7 +42,7 @@ add_score(score_df, 'auc', y_test, y_pred)
 log.debug(score_df)
 accuracy_score = accuracy_score(y_test, y_pred)
 
-assert accuracy_score > 0.96
+assert accuracy_score > 0.90
 
 # In[]
 '''
