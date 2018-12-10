@@ -187,7 +187,7 @@ param_grid = {
     'is_unbalance': [True]
 }
 
-scorings = ['neg_log_loss', 'accuracy', 'precision', 'recall', 'roc_auc', 'f1', 'f1_micro', 'average_precision',
+scorings = ['f1_micro_rs','neg_log_loss', 'accuracy', 'precision', 'recall', 'roc_auc', 'f1', 'average_precision',
             'f1_macro', 'f1_weighted']
 # scorings = ['f1_micro']
 for scoring in scorings:
