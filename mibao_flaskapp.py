@@ -62,7 +62,7 @@ app = Flask(__name__)
 def get_predict_result(order_id):
     # log.debug("order_id: {}".format(order_id))
     global mibaodata_ml_online_df
-    time.sleep(4)
+    time.sleep(3)
     ret_data = 2
     df = get_order_data(order_id, is_sql=True)
     if len(df) != 0:
