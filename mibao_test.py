@@ -27,7 +27,7 @@ from sql import *
 warnings.filterwarnings('ignore')
 
 ml_start_order_id = 109957
-pred_start_order_id = 109975
+pred_start_order_id = 110444
 # 查验审核准确度
 sql = '''
     SELECT o.id as 'order_id', o.`create_time`, o.state, r.`type`, r.`result`, r.`remark`, cao.state as 'state_cao', cao.`remark` as 'remark_cao', o.deposit FROM `order` o 

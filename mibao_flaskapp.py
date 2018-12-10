@@ -18,6 +18,7 @@ from mibao_log import log
 import random
 from explore_data_utils import add_score
 
+lgb_params_file = "f1.json"
 log.debug(time.asctime())
 warnings.filterwarnings('ignore')
 pd.set_option('display.max_columns', 60)
@@ -31,7 +32,7 @@ y = df['target'].tolist()
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1)
 
 # 机器学习模型训练
-with open(os.path.join(workdir, "lgb_params.json"), 'r') as f:
+with open(os.path.join(workdir, lgb_params_file), 'r') as f:
     lgb_params_auc = json.load(f)
 
 lgb_clf = lgb.LGBMClassifier(**lgb_params_auc)

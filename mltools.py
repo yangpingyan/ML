@@ -19,7 +19,7 @@ def get_csv_files(dir_path):
 
 def get_workdir():
     try:
-        workdir = os.path.abspath(__path__)
+        workdir = os.path.dirname(os.path.realpath(__file__))
     except:
         workdir = os.getcwd()
     return workdir

@@ -187,8 +187,9 @@ param_grid = {
     'is_unbalance': [True]
 }
 
-scorings = ['f1_micro_rs','neg_log_loss', 'accuracy', 'precision', 'recall', 'roc_auc', 'f1', 'average_precision',
+scorings = ['f1_micro','neg_log_loss', 'accuracy', 'precision', 'recall', 'roc_auc', 'f1', 'average_precision',
             'f1_macro', 'f1_weighted']
+scorings = [ 'precision', 'roc_auc', 'f1']
 # scorings = ['f1_micro']
 for scoring in scorings:
     lgb_clf = lgb.LGBMClassifier()
@@ -234,6 +235,15 @@ average_precision_rs  0.950839   0.864286  0.719382  0.785204      [[5797, 95], 
 recall_rs             0.950988   0.865522  0.719382  0.785714      [[5798, 94], [236, 605]]
 f1_micro_rs           0.951285   0.868006  0.719382  0.786736      [[5800, 92], [236, 605]]
 auc_alldata           0.938507   0.686877  0.937907  0.793000  [[55255, 3615], [525, 7930]]
+
+binary_logloss   0.911778   0.598563  0.891795  0.716332   [[5389, 503], [91, 750]]
+auc              0.924105   0.643728  0.878716  0.743087  [[5483, 409], [102, 739]]
+f1_micro_rs      0.942225   0.747807  0.810939  0.778095  [[5662, 230], [159, 682]]
+neg_log_loss_rs  0.944601   0.768349  0.796671  0.782253  [[5690, 202], [171, 670]]
+accuracy_rs      0.947572   0.811224  0.756243  0.782769  [[5744, 148], [205, 636]]
+precision_rs     0.949354   0.814070  0.770511  0.791692  [[5744, 148], [193, 648]]
+
+
 '''
 '''
 调试代码
