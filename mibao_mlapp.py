@@ -91,8 +91,7 @@ importance_df = pd.DataFrame({'name': x_train.columns, 'importance': feature_imp
 importance_df.sort_values(by=['importance'], ascending=False, inplace=True)
 print(importance_df)
 
-y_pred = lgb_clf.predict(x)
-add_score(score_df, 'auc_alldata', y_test=y, y_pred=y_pred)
+
 print(score_df)
 # result_df['predict'] = y_pred
 # result_df.to_csv(os.path.join(workdir,"mibao_mlresult.csv"), index=False)
@@ -185,7 +184,7 @@ param_grid = {
     # 'reg_lambda': list(np.linspace(0, 1)),
     # 'colsample_bytree': list(np.linspace(0.6, 1, 10)),
     # 'subsample': list(np.linspace(0.5, 1, 100)),
-    'is_unbalance': [True, False]
+    'is_unbalance': [True]
 }
 
 scorings = ['neg_log_loss', 'accuracy', 'precision', 'recall', 'roc_auc', 'f1', 'f1_micro', 'average_precision',
