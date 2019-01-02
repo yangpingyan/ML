@@ -28,7 +28,7 @@ workdir = get_workdir()
 
 # configure debug_mode automatically just for convenience
 debug_mode = False
-if workdir.find('iCloud') != -1:
+if workdir.find('github') != -1:
     debug_mode = True
 log.debug("debug_mode is {}".format(debug_mode))
 

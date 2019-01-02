@@ -74,7 +74,7 @@ def missing_values_table(df):
 
 
 # 特征分析
-def feature_analyse(df, feature, label='target', bins=10):
+def feature_analyse_target(df, feature, label='target', bins=10):
     print("dtype: {}.".format(df[feature].dtype))
     df[feature].fillna(value='NODATA' if df[feature].dtype == 'O' else 0, inplace=True)
 
