@@ -311,22 +311,22 @@ df.columns.values
 missing_values_table(df)
 '''
 
-
+# 适合二分类有标签的机器学习算法
 '''
 classifiers = [
     lgb.LGBMClassifier(),  # 0.931343， 0.833524
-    # RandomForestClassifier(), #0.924745, 0.811788
-    # KNeighborsClassifier(3),
-    # # SVC(probability=True),
-    # DecisionTreeClassifier(),
-    # AdaBoostClassifier(),
-    # GradientBoostingClassifier(),
-    # GaussianNB(),
-    # LinearDiscriminantAnalysis(),
-    # QuadraticDiscriminantAnalysis(),
-    # LogisticRegression(),
-    # SGDClassifier(max_iter=5),
-    # Perceptron(),
-    # XGBClassifier()
+    RandomForestClassifier(), #0.924745, 0.811788
+    KNeighborsClassifier(3),
+    SVC(probability=True),
+    DecisionTreeClassifier(),
+    AdaBoostClassifier(),
+    GradientBoostingClassifier(),
+    GaussianNB(),
+    LinearDiscriminantAnalysis(),
+    QuadraticDiscriminantAnalysis(),
+    LogisticRegression(),
+    SGDClassifier(max_iter=5),
+    Perceptron(),
+    XGBClassifier()
 ]
 '''

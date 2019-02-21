@@ -55,7 +55,7 @@ df['state'].value_counts()
 
 # 去除测试数据和内部员工数据
 df = df[df['cancel_reason'].str.contains('测试') != True]
-df = df[df['check_remark'].str.contains('测试') != True]
+df = df[df['check_result'].str.contains('测试') != True]
 # 去除命中商户白名单的订单
 df = df[df['hit_merchant_white_list'].str.contains('01') != True]
 
